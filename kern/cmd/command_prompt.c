@@ -9,7 +9,7 @@
 #include <kern/tests/tst_handler.h>
 #include "commands.h"
 
-// ********** This DosKey supported readline function is implemented by **********
+// ********** This DosKey supported readline function is implemented by *********
 // ********** Abdullah Najuib ( FCIS T.A.), 3rd year student, FCIS, 2012
 
 //#define CMD_NUMBER sizeof(comds)/sizeof(comds[0])
