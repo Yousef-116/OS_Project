@@ -2,6 +2,7 @@
 // controlling the kernel and exploring the system interactively.
 
 // last version TEST
+// last version TEST 2
 
 #include <kern/cmd/command_prompt.h>
 
