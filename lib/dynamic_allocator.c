@@ -99,11 +99,8 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 	struct BlockMetaData metaData;
 	metaData.size=initSizeOfAllocatedSpace;
 	metaData.is_free=1;
-	LIST_ENTRY(type) info;
-	info.le_next = NULL ;
-	info.le_prev = NULL ;
-	metaData.prev_next_info=info;
-
+	metaData.prev_next_info.le_next=NULL;
+	metaData.prev_next_info.le_prev=NULL;
 }
 
 //=========================================
