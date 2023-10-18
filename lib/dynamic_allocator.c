@@ -99,7 +99,7 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 
 	struct BlockMetaData *metaData = (struct BlockMetaData *) daStart;
 
-	metaData->size=initSizeOfAllocatedSpace - sizeOfMetaData();
+	metaData->size=initSizeOfAllocatedSpace;
 	metaData->is_free=1;
 	metaData->prev_next_info.le_next=NULL;
 	metaData->prev_next_info.le_prev=NULL;
