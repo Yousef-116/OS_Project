@@ -387,7 +387,11 @@ int commandsSize()
 int process_command(int number_of_arguments, char** arguments)
 {
 	for(int i = 0 ; i < commandsSize(); i++){
-		if(strcmp(arguments[0] , (char *)commands[i].name) == 0){
+		char * cmd = "";
+		str2lower(arguments[0], arguments[0]);
+		str2lower(cmd, (char *)commands[i].name);
+
+		if(strcmp(arguments[0] , cmd) == 0){
 			if(commands[i].num_of_args ==  number_of_arguments - 1 ||commands[i].num_of_args == -1){
 				return i;
 			}
