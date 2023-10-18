@@ -33,6 +33,8 @@ void command_prompt_readline(const char *, char *);
 
 /*2024*/
 int process_command(int number_of_arguments, char** arguments);
+int isMatch(char ** command);
+int commandsSize();
 
 
 #endif	// !FOS_KERN_MONITOR_H

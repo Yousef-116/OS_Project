@@ -375,11 +375,54 @@ int execute_command(char *command_string)
 	return 0;
 }
 
+int commandsSize()
+{
+	int size = 0;
+	while(commands[size].name != NULL){
+		size++;
+	}
+	return size - 1;
+}
 
 int process_command(int number_of_arguments, char** arguments)
 {
-	//TODO: [PROJECT'23.MS1 - #2] [1] PLAY WITH CODE! - process_command
-	//Comment the following line before start coding...
-	panic("process_command is not implemented yet");
-	return 0;
+	for(int i = 0 ; i < commandsSize(); i++){
+		if(strcmp(arguments[0] , (char *)commands[i].name) == 0){
+			if(commands[i].num_of_args ==  number_of_arguments - 1 ||commands[i].num_of_args == -1){
+				return i;
+			}
+			else{
+				LIST_INSERT_TAIL(&foundCommands, &commands[i]);
+				return CMD_INV_NUM_ARGS;
+			}
+		}
+	}
+	return isMatch(arguments);
+}
+
+int isMatch(char **command)
+{
+	int sizeAfter = 0;
+	int matchedChars = 0;
+	for(int k = 0 ; k <commandsSize(); k++){
+		int matchedChars = 0;
+		for(int j = 0; j < strlen((char *)commands[k].name); j++){
+			char *str = (char *)commands[k].name;
+			if(command[0][matchedChars] == str[j]){
+				matchedChars++;
+			}
+			if(matchedChars == strlen(command[0])){
+				LIST_INSERT_TAIL(&foundCommands, &commands[k]);
+				sizeAfter = LIST_SIZE(&foundCommands);
+				break;
+			}
+		}
+	}
+
+	if( sizeAfter != 0){
+	  return CMD_MATCHED;
+	}
+	else{
+	  return CMD_INVALID;
+	}
 }
