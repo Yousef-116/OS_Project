@@ -1,7 +1,6 @@
 
 #include <inc/lib.h>
 
-
 int factorial(int n);
 
 void

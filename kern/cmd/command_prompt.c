@@ -375,21 +375,14 @@ int execute_command(char *command_string)
 	return 0;
 }
 
-int commandsSize()
-{
-	int size = 0;
-	while(commands[size].name != NULL){
-		size++;
-	}
-	return size - 1;
-}
+
 
 int process_command(int number_of_arguments, char** arguments)
 {
-	for(int i = 0 ; i < commandsSize(); i++){
+	for(int i = 0 ; i < NUM_OF_COMMANDS; i++){
 		char * cmd = "";
 		str2lower(arguments[0], arguments[0]);
-		str2lower(cmd, (char *)commands[i].name);
+		str2lower(cmd, commands[i].name);
 
 		if(strcmp(arguments[0] , cmd) == 0){
 
@@ -413,10 +406,10 @@ int isMatch(char **command)
 	int sizeAfter = 0;
 	int matchedChars = 0;
 	LIST_INIT(&foundCommands);
-	for(int k = 0 ; k <commandsSize(); k++){
-		int matchedChars = 0;
-		for(int j = 0; j < strlen((char *)commands[k].name); j++){
-			char *str = (char *)commands[k].name;
+	for(int k = 0 ; k < NUM_OF_COMMANDS; k++){
+		 matchedChars = 0;
+		for(int j = 0; j < strlen(commands[k].name); j++){
+			char *str = commands[k].name;
 			if(command[0][matchedChars] == str[j]){
 				matchedChars++;
 			}
