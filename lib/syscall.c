@@ -337,19 +337,25 @@ void sys_allocate_chunk(uint32 virtual_address, uint32 size, uint32 perms)
 void* sys_sbrk(int increment)
 {
 	//Comment the following line before start coding...
-	panic("not implemented yet");
-	return NULL;
+	//panic("not implemented yet");
+
+	uint32 ret = syscall(SYS_sbrk, (uint32) increment, 5, 5, 5, 5);
+	return (void *) ret;
 }
 
 void sys_free_user_mem(uint32 virtual_address, uint32 size)
 {
 	//Comment the following line before start coding...
-	panic("not implemented yet");
+	//panic("not implemented yet");
+
+	syscall(SYS_free_user_mem, virtual_address, size, 0, 0, 0);
 }
 
 void sys_allocate_user_mem(uint32 virtual_address, uint32 size)
 {
 	//Comment the following line before start coding...
-	panic("not implemented yet");
+	//panic("not implemented yet");
+
+	syscall(SYS_allocate_user_mem, virtual_address, size, 0, 0, 0);
 }
 

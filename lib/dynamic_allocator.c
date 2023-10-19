@@ -85,6 +85,7 @@ void print_blocks_list(struct MemBlock_LIST list)
 //==================================
 // [1] INITIALIZE DYNAMIC ALLOCATOR:
 //==================================
+struct MemBlock_LIST MemoryList;
 void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpace)
 {
 	//=========================================
@@ -104,6 +105,15 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 	metaData->prev_next_info.le_next=NULL;
 	metaData->prev_next_info.le_prev=NULL;
 
+	//struct MemBlock_LIST head;
+//	head.lh_first=metaData;
+//	head.lh_last=metaData;
+//	head.___ptr_next=NULL;
+//	head.size=1;
+
+	LIST_INIT(&MemoryList);
+	LIST_INSERT_HEAD(&MemoryList, metaData);
+	LIST_LAST(&MemoryList) = metaData;
 }
 
 //=========================================
@@ -112,8 +122,43 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 void *alloc_block_FF(uint32 size)
 {
 	//TODO: [PROJECT'23.MS1 - #6] [3] DYNAMIC ALLOCATOR - alloc_block_FF()
-	panic("alloc_block_FF is not implemented yet");
-	return NULL;
+    //panic("alloc_block_FF is not implemented yet");
+    if(size==0) return NULL;
+
+    struct BlockMetaData *ele;
+    int found = 0;
+    LIST_FOREACH(ele, &MemoryList)
+    {
+    	// found suitable size
+    	if(ele->is_free && (ele->size - sizeOfMetaData()) >= size)
+    	{
+    		found = 1;
+    		uint32 var = ele->size;
+    		ele->size = size + sizeOfMetaData();
+    		ele->is_free = 0;
+
+    		if((var - sizeOfMetaData()) - size > sizeOfMetaData())
+    		{
+    		struct BlockMetaData *metaData = (ele + ele->size);
+    		metaData->size= var - ele->size;
+    		metaData->is_free=1;
+    		metaData->prev_next_info.le_next = ele->prev_next_info.le_next;
+    		metaData->prev_next_info.le_prev = ele;
+
+    		ele->prev_next_info.le_next = metaData;
+    		}
+
+    		return (ele);
+    	}
+
+    }
+
+	sbrk(size);
+	//alloc_block_FF(size);
+
+
+
+    return NULL;
 }
 //=========================================
 // [5] ALLOCATE BLOCK BY BEST FIT:
