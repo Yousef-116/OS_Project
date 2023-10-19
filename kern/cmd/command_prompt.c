@@ -392,11 +392,15 @@ int process_command(int number_of_arguments, char** arguments)
 		str2lower(cmd, (char *)commands[i].name);
 
 		if(strcmp(arguments[0] , cmd) == 0){
-			if(commands[i].num_of_args ==  number_of_arguments - 1 ||commands[i].num_of_args == -1){
+
+			if(commands[i].num_of_args ==  number_of_arguments - 1 || (commands[i].num_of_args == -1 && number_of_arguments >= 2))
+			{
 				return i;
 			}
-			else{
-				LIST_INSERT_TAIL(&foundCommands, &commands[i]);
+			else
+			{
+				LIST_INIT(&foundCommands);
+				LIST_INSERT_HEAD(&foundCommands, &commands[i]);
 				return CMD_INV_NUM_ARGS;
 			}
 		}
@@ -408,6 +412,7 @@ int isMatch(char **command)
 {
 	int sizeAfter = 0;
 	int matchedChars = 0;
+	LIST_INIT(&foundCommands);
 	for(int k = 0 ; k <commandsSize(); k++){
 		int matchedChars = 0;
 		for(int j = 0; j < strlen((char *)commands[k].name); j++){
