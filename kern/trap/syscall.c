@@ -515,6 +515,7 @@ void* sys_sbrk(int increment)
 // Dispatches to the correct kernel function, passing the arguments.
 uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uint32 a5)
 {
+	cprintf(" iam in sys call : a1 %d \n" , a1);
 	// Call the function corresponding to the 'syscallno' parameter.
 	// Return any appropriate return value.
 	switch(syscallno)
