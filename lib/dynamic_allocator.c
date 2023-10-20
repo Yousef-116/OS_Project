@@ -97,8 +97,10 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 
 	//TODO: [PROJECT'23.MS1 - #5] [3] DYNAMIC ALLOCATOR - initialize_dynamic_allocator()
 	//panic("initialize_dynamic_allocator is not implemented yet");
+	//cprintf("init size=%d\n metaDataSize=%d\n", initSizeOfAllocatedSpace, sizeOfMetaData());
 
 	struct BlockMetaData *metaData = (struct BlockMetaData *) daStart;
+	cprintf("init address=%p +sizeOfMetaData=%p\n", metaData, metaData+1);
 
 	metaData->size=initSizeOfAllocatedSpace;
 	metaData->is_free=1;
@@ -119,44 +121,56 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 //=========================================
 // [4] ALLOCATE BLOCK BY FIRST FIT:
 //=========================================
+int done = 1;
 void *alloc_block_FF(uint32 size)
 {
+	cprintf("called.. size=%d\n", size);
 	//TODO: [PROJECT'23.MS1 - #6] [3] DYNAMIC ALLOCATOR - alloc_block_FF()
     //panic("alloc_block_FF is not implemented yet");
     if(size==0) return NULL;
 
-    struct BlockMetaData *ele;
-    int found = 0;
-    LIST_FOREACH(ele, &MemoryList)
+    struct BlockMetaData *currMetaData;
+    uint32 emptySpace, remSpace;
+    int ctr = 1;
+    LIST_FOREACH(currMetaData, &MemoryList)
     {
+    	//cprintf("B%d BlockSize=%u\n", ctr++, currMetaData->size);
     	// found suitable size
-    	if(ele->is_free && (ele->size - sizeOfMetaData()) >= size)
+    	if(currMetaData->is_free)
     	{
-    		found = 1;
-    		uint32 var = ele->size;
-    		ele->size = size + sizeOfMetaData();
-    		ele->is_free = 0;
-
-    		if((var - sizeOfMetaData()) - size > sizeOfMetaData())
+    		emptySpace = currMetaData->size - sizeOfMetaData();
+    		if(emptySpace >= size)
     		{
-    		struct BlockMetaData *metaData = (ele + ele->size);
-    		metaData->size= var - ele->size;
-    		metaData->is_free=1;
-    		metaData->prev_next_info.le_next = ele->prev_next_info.le_next;
-    		metaData->prev_next_info.le_prev = ele;
+    			currMetaData->is_free = 0;
+    			remSpace = emptySpace - size;
+    			//cprintf("remSpace=%u\n", remSpace);
 
-    		ele->prev_next_info.le_next = metaData;
+    			if(remSpace > sizeOfMetaData()) // there is a space for another MetaData
+    			{
+    				currMetaData->size -= remSpace;
+
+    				int incBytes = size/sizeOfMetaData() + size%sizeOfMetaData();
+    				struct BlockMetaData *newMetaData = (currMetaData + incBytes + 1);
+    				//struct BlockMetaData *newMetaData = (currMetaData + size + 1);
+    				newMetaData->size = remSpace;
+    				newMetaData->is_free = 1;
+    				LIST_INSERT_AFTER(&MemoryList, currMetaData, newMetaData);
+
+    				//cprintf("newBlockSize=%u\n", newMetaData->size);
+    				cprintf("done%d\n", done++);
+    			}
+
+    			cprintf("address=%p +sizeOfMetaData=%p\n\n", currMetaData, currMetaData+1);
+    			return (currMetaData + 1);
     		}
-
-    		return (ele);
     	}
-
     }
 
-	sbrk(size);
-	//alloc_block_FF(size);
-
-
+    if(sbrk(size) != (void*)-1){
+    	//cprintf("sbrk\n");
+    	return alloc_block_FF(size);
+    }
+    //cprintf("failed\n");
 
     return NULL;
 }
