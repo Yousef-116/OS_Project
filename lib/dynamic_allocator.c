@@ -149,7 +149,7 @@ void *alloc_block_FF(uint32 size)
     			{
     				currMetaData->size -= remSpace;
 
-    				int incBytes = size/sizeOfMetaData() + size%sizeOfMetaData();
+    				int incBytes = size/sizeOfMetaData();
     				struct BlockMetaData *newMetaData = (currMetaData + incBytes + 1);
     				//struct BlockMetaData *newMetaData = (currMetaData + size + 1);
     				newMetaData->size = remSpace;
