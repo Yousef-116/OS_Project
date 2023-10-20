@@ -124,7 +124,7 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 int done = 1;
 void *alloc_block_FF(uint32 size)
 {
-	cprintf("called.. size=%d\n", size);
+	//cprintf("called.. size=%d\n", size);
 	//TODO: [PROJECT'23.MS1 - #6] [3] DYNAMIC ALLOCATOR - alloc_block_FF()
     //panic("alloc_block_FF is not implemented yet");
     if(size==0) return NULL;
@@ -149,18 +149,16 @@ void *alloc_block_FF(uint32 size)
     			{
     				currMetaData->size -= remSpace;
 
-    				int incBytes = size/sizeOfMetaData();
-    				struct BlockMetaData *newMetaData = (currMetaData + incBytes + 1);
-    				//struct BlockMetaData *newMetaData = (currMetaData + size + 1);
-    				newMetaData->size = remSpace;
+    				struct BlockMetaData *newMetaData = (struct BlockMetaData *)((uint32)currMetaData + size + sizeOfMetaData());
     				newMetaData->is_free = 1;
+    				newMetaData->size = remSpace;
     				LIST_INSERT_AFTER(&MemoryList, currMetaData, newMetaData);
 
     				//cprintf("newBlockSize=%u\n", newMetaData->size);
-    				cprintf("done%d\n", done++);
+    				//cprintf("done%d\n", done++);
     			}
 
-    			cprintf("address=%p +sizeOfMetaData=%p\n\n", currMetaData, currMetaData+1);
+    			//cprintf("address=%p +sizeOfMetaData=%p\n\n", currMetaData, currMetaData+1);
     			return (currMetaData + 1);
     		}
     	}
