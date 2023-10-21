@@ -22,5 +22,4 @@ void test_free_block_NF();
 void test_realloc_block_FF_COMPLETE();
 void test_realloc_block_FF();
 
-
 #endif /* KERN_TESTS_TEST_DYNAMIC_ALLOCATOR_H_ */

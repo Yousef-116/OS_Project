@@ -521,11 +521,7 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 	{
 	/*2023*/
 	//TODO: [PROJECT'23.MS1 - #4] [2] SYSTEM CALLS - Add suitable code here
-<<<<<<< HEAD
 
-
-
-=======
 	case SYS_sbrk:
 		return (uint32) sys_sbrk((int) a1);;
 		break;
@@ -537,8 +533,7 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		sys_allocate_user_mem(a1, a2);
 		return 0;
 		break;
->>>>>>> branch 'main' of https://github.com/Yousef-116/OS_Project.git
-	//=====================================================================
+
 	case SYS_cputs:
 		sys_cputs((const char*)a1,a2,(uint8)a3);
 		return 0;

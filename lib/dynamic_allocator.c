@@ -8,6 +8,15 @@
 #include <inc/string.h>
 #include "../inc/dynamic_allocator.h"
 
+//==================================================================================//
+//============================== OUR DEFINED FUNCTIONS =============================//
+//==================================================================================//
+
+void setVBlock0(struct BlockMetaData *currMetaData)
+{
+	currMetaData->is_free = 0;
+	currMetaData->size = 0;
+}
 
 //==================================================================================//
 //============================== GIVEN FUNCTIONS ===================================//
@@ -74,6 +83,7 @@ void print_blocks_list(struct MemBlock_LIST list)
 	cprintf("=========================================\n");
 
 }
+
 //
 ////********************************************************************************//
 ////********************************************************************************//
@@ -100,7 +110,7 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 	//cprintf("init size=%d\n metaDataSize=%d\n", initSizeOfAllocatedSpace, sizeOfMetaData());
 
 	struct BlockMetaData *metaData = (struct BlockMetaData *) daStart;
-	cprintf("init address=%p +sizeOfMetaData=%p\n", metaData, metaData+1);
+	//cprintf("init address=%p +sizeOfMetaData=%p\n", metaData, metaData+1);
 
 	metaData->size=initSizeOfAllocatedSpace;
 	metaData->is_free=1;
@@ -131,7 +141,7 @@ void *alloc_block_FF(uint32 size)
 
     struct BlockMetaData *currMetaData;
     uint32 emptySpace, remSpace;
-    int ctr = 1;
+   // int ctr = 1;
     LIST_FOREACH(currMetaData, &MemoryList)
     {
     	//cprintf("B%d BlockSize=%u\n", ctr++, currMetaData->size);
@@ -206,7 +216,65 @@ void *alloc_block_NF(uint32 size)
 void free_block(void *va)
 {
 	//TODO: [PROJECT'23.MS1 - #7] [3] DYNAMIC ALLOCATOR - free_block()
-	panic("free_block is not implemented yet");
+
+	struct BlockMetaData *currMetaData = ((struct BlockMetaData *)va - 1);
+	struct BlockMetaData *first_element = LIST_FIRST(&MemoryList);
+	struct BlockMetaData *last_element = LIST_LAST(&MemoryList);
+
+
+	if(!(currMetaData == first_element || currMetaData == last_element))
+	{
+		if(currMetaData->prev_next_info.le_next->is_free == 1 && currMetaData->prev_next_info.le_prev->is_free == 1) //next and prev  are empty
+		{
+			currMetaData->prev_next_info.le_prev->size += currMetaData->size + currMetaData->prev_next_info.le_next->size;
+			setVBlock0(currMetaData->prev_next_info.le_next);
+			setVBlock0(currMetaData);
+			//LIST_REMOVE(&MemoryList ,currMetaData->prev_next_info.le_next);
+			//LIST_REMOVE(&MemoryList ,currMetaData);
+		}
+		else if(currMetaData->prev_next_info.le_next->is_free == 0 && currMetaData->prev_next_info.le_prev->is_free == 0)//next and prev  are not empty
+		{
+			currMetaData->is_free = 1;
+		}else if(currMetaData->prev_next_info.le_next->is_free == 1 && currMetaData->prev_next_info.le_prev->is_free == 0)// next is empty
+		{
+			currMetaData->is_free = 1;
+			currMetaData->size += currMetaData->prev_next_info.le_next->size;
+			setVBlock0(currMetaData->prev_next_info.le_next);
+			//LIST_REMOVE(&MemoryList ,currMetaData->prev_next_info.le_next);
+		}else if(currMetaData->prev_next_info.le_next->is_free == 0 && currMetaData->prev_next_info.le_prev->is_free == 1) // prev is empty
+		{
+			currMetaData->prev_next_info.le_prev->size += currMetaData->size;
+			setVBlock0(currMetaData);
+
+			//LIST_REMOVE(&MemoryList ,currMetaData);
+		}
+	}
+	else if(currMetaData == first_element)
+	{
+		if(currMetaData->prev_next_info.le_next->is_free == 1)
+		{
+			currMetaData->is_free = 1;
+			currMetaData->size += currMetaData->prev_next_info.le_next->size;
+			setVBlock0(currMetaData->prev_next_info.le_next);
+		}
+		else
+		{
+			currMetaData->is_free = 1;
+		}
+
+	}
+	else if(currMetaData == last_element)
+	{
+		if(currMetaData->prev_next_info.le_prev->is_free == 1)
+		{
+			currMetaData->prev_next_info.le_prev->size += currMetaData->size;
+			setVBlock0(currMetaData);
+		}
+		else
+		{
+			currMetaData->is_free = 1;
+		}
+	}
 }
 
 //=========================================
