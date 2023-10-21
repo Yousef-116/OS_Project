@@ -237,8 +237,8 @@ void free_block(void *va)
 			currMetaData->is_free = 1;
 		}else if(currMetaData->prev_next_info.le_next->is_free == 1 && currMetaData->prev_next_info.le_prev->is_free == 0)// next is empty
 		{
-			currMetaData->is_free = 1;
 			currMetaData->size += currMetaData->prev_next_info.le_next->size;
+			currMetaData->is_free = 1;
 			setVBlock0(currMetaData->prev_next_info.le_next);
 			//LIST_REMOVE(&MemoryList ,currMetaData->prev_next_info.le_next);
 		}else if(currMetaData->prev_next_info.le_next->is_free == 0 && currMetaData->prev_next_info.le_prev->is_free == 1) // prev is empty
@@ -253,8 +253,8 @@ void free_block(void *va)
 	{
 		if(currMetaData->prev_next_info.le_next->is_free == 1)
 		{
-			currMetaData->is_free = 1;
 			currMetaData->size += currMetaData->prev_next_info.le_next->size;
+			currMetaData->is_free = 1;
 			setVBlock0(currMetaData->prev_next_info.le_next);
 		}
 		else
