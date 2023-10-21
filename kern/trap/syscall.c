@@ -517,23 +517,27 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 {
 	// Call the function corresponding to the 'syscallno' parameter.
 	// Return any appropriate return value.
+
 	switch(syscallno)
 	{
 	/*2023*/
-	//TODO: [PROJECT'23.MS1 - #4] [2] SYSTEM CALLS - Add suitable code here
+	//TODO: [PROJECT'23.MS1 - #4] [2] SYSTEM CALLS - Add suitable code her
 
 	case SYS_sbrk:
-		return (uint32) sys_sbrk((int) a1);;
+		return (uint32) sys_sbrk((int) a1);
 		break;
 	case SYS_free_user_mem:
-		sys_free_user_mem(a1, a2);
-		return 0;
+		if(a1>0 && a1<USER_LIMIT + KERNEL_BASE && a2>0){
+			sys_free_user_mem(a1, a2);
+			return 0;
+		}else sched_kill_env(curenv->env_id);
 		break;
 	case SYS_allocate_user_mem:
-		sys_allocate_user_mem(a1, a2);
-		return 0;
+		if(a1>0 && a1<USER_LIMIT + KERNEL_BASE && a2>0){
+			sys_allocate_user_mem(a1, a2);
+			return 0;
+		}else sched_kill_env(curenv->env_id);
 		break;
-
 	case SYS_cputs:
 		sys_cputs((const char*)a1,a2,(uint8)a3);
 		return 0;
