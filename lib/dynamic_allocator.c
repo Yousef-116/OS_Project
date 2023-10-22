@@ -12,12 +12,14 @@
 //============================== OUR DEFINED FUNCTIONS =============================//
 //==================================================================================//
 
-struct MemBlock_LIST MemoryList;
+//struct MemBlock_LIST MemoryList;
 
-void setVBlock0(struct BlockMetaData *currMetaData)
+void setVBlock0(struct BlockMetaData *MetaData)
 {
-	currMetaData->is_free = 0;
-	currMetaData->size = 0;
+	MetaData->is_free = 0;
+	MetaData->size = 0;
+	LIST_REMOVE(&MemoryList ,MetaData);
+	//free(MetaData);
 }
 
 struct BlockMetaData *getRealNextMetaData(struct BlockMetaData *currMetaData)
@@ -180,7 +182,7 @@ void *alloc_block_FF(uint32 size)
     			remSpace = emptySpace - size;
     			//cprintf("remSpace=%u\n", remSpace);
 
-    			if(remSpace > sizeOfMetaData()) // there is a space for another MetaData
+    			if(remSpace >= sizeOfMetaData()) // there is a space for another MetaData
     			{
     				currMetaData->size -= remSpace;
 
@@ -270,7 +272,7 @@ void *alloc_block_BF(uint32 size)
 		remSpace = emptySpace - size;
 		//cprintf("remSpace=%u\n", remSpace);
 
-		if(remSpace > sizeOfMetaData()) // there is a space for another MetaData
+		if(remSpace >= sizeOfMetaData()) // there is a space for another MetaData
 		{
 			bestFitBlock->size -= remSpace;
 
@@ -380,6 +382,19 @@ void free_block(void *va)
 // [4] REALLOCATE BLOCK BY FIRST FIT:
 //=========================================
 
+void *free_and_allocff(void* va, uint32 new_size)
+{
+	free_block(va);
+	void * ret = alloc_block_FF(new_size);
+	if(ret != NULL)  //allocation succeeded
+	{
+		return ret;
+	}
+	else {  // allocation failed
+		return va;
+	}
+}
+
 void *realloc_block_FF(void* va, uint32 new_size)
 {
 	//TODO: [PROJECT'23.MS1 - #8] [3] DYNAMIC ALLOCATOR - realloc_block_FF()
@@ -400,7 +415,7 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	}
 
 	struct BlockMetaData *currMetaData = ((struct BlockMetaData *)va - 1);
-	uint32 totalSize = 0 ;
+	uint32 totalSize, remSpace ;
 	struct BlockMetaData *NextMetaData = getRealNextMetaData(currMetaData);
 
 	if(NextMetaData != NULL)  // if it has a next node
@@ -425,25 +440,33 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		    		//NextMetaData = (struct BlockMetaData *)((uint32)currMetaData + new_size + sizeOfMetaData());
 		    		return va;
 		    		*/
+		    		remSpace = totalSize - new_size;
 
-		    		currMetaData->size = new_size + sizeOfMetaData();
-		    		setVBlock0(NextMetaData);
-					struct BlockMetaData *newMetaData = (struct BlockMetaData *)((uint32)currMetaData + currMetaData->size);
-					newMetaData->is_free = 1;
-					newMetaData->size = totalSize - new_size;
-					LIST_INSERT_AFTER(&MemoryList, currMetaData, newMetaData);
+		    		if(remSpace >= sizeOfMetaData())  // there is a space for a new metaData
+		    		{
+		    			currMetaData->size = new_size + sizeOfMetaData();
+		    			setVBlock0(NextMetaData);
+		    			struct BlockMetaData *newMetaData = (struct BlockMetaData *)((uint32)currMetaData + currMetaData->size);
+		    			newMetaData->is_free = 1;
+		    			newMetaData->size = remSpace;
+		    			LIST_INSERT_AFTER(&MemoryList, currMetaData, newMetaData);
+		    		}
+
+
 					return va;
 		    	}
 		    	else if (totalSize < new_size)    // if next free and total size < new size call free bloc and after allocate the bloc by FF
 		    	{
-		    		free_block(va);
-		    		return alloc_block_FF(new_size);
+		    		//free_block(va);
+		    		//return alloc_block_FF(new_size);
+		    		free_and_allocff(va, new_size);
 		    	}
 
 			}
 			else {  // next is not free
-				free_block(va);
-				return alloc_block_FF(new_size);
+				//free_block(va);
+				//return alloc_block_FF(new_size);
+				free_and_allocff(va, new_size);
 			}
 		}
 		else if ( currMetaData->size > new_size )  // new size is smaller than current size
@@ -465,7 +488,7 @@ void *realloc_block_FF(void* va, uint32 new_size)
 
 			return va;
 		}
-		else if ( currMetaData->size > new_size ) // new size is equal to current size
+		else if ( currMetaData->size == new_size ) // new size is equal to current size
 		{
 			return va;
 		}
@@ -473,8 +496,9 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	}
 	else   // if the node is at the tail or at the its just one node and head and tail
 	{
-		free_block(va);
-		return alloc_block_FF(new_size);
+		//free_block(va);
+		//return alloc_block_FF(new_size);
+		free_and_allocff(va, new_size);
 	}
 
 	return NULL;
