@@ -12,10 +12,34 @@
 //============================== OUR DEFINED FUNCTIONS =============================//
 //==================================================================================//
 
+struct MemBlock_LIST MemoryList;
+
 void setVBlock0(struct BlockMetaData *currMetaData)
 {
 	currMetaData->is_free = 0;
 	currMetaData->size = 0;
+}
+
+struct BlockMetaData *getRealNextMetaData(struct BlockMetaData *currMetaData)
+{
+	struct BlockMetaData *NextMetaData = LIST_NEXT(currMetaData);
+	while(NextMetaData != NULL && NextMetaData->size == 0)  // get the really next node
+	{
+		NextMetaData = LIST_NEXT(NextMetaData);
+	}
+
+	return NextMetaData;
+}
+
+struct BlockMetaData *getRealPrevMetaData(struct BlockMetaData *currMetaData)
+{
+	struct BlockMetaData *PrevMetaData = LIST_PREV(currMetaData);
+	while(PrevMetaData != NULL && PrevMetaData->size == 0)  // get the really prev node
+	{
+		PrevMetaData = LIST_PREV(PrevMetaData);
+	}
+
+	return PrevMetaData;
 }
 
 //==================================================================================//
@@ -95,7 +119,7 @@ void print_blocks_list(struct MemBlock_LIST list)
 //==================================
 // [1] INITIALIZE DYNAMIC ALLOCATOR:
 //==================================
-struct MemBlock_LIST MemoryList;
+
 void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpace)
 {
 	//=========================================
@@ -131,7 +155,7 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 //=========================================
 // [4] ALLOCATE BLOCK BY FIRST FIT:
 //=========================================
-int done = 1;
+//int done = 1;
 void *alloc_block_FF(uint32 size)
 {
 	//cprintf("called.. size=%d\n", size);
@@ -181,7 +205,8 @@ void *alloc_block_FF(uint32 size)
     }
     //cprintf("failed\n");
 
-    return NULL;
+    //return NULL;
+    return 0;
 }
 //=========================================
 // [5] ALLOCATE BLOCK BY BEST FIT:
@@ -213,7 +238,7 @@ void *alloc_block_BF(uint32 size)
 	    				bestFitBlock = currMetaData;
 	    				//cprintf("bestFitBlock is no longer null\n");
 	    			}
-	    			else if (bestFitBlock->size >= currMetaData->size){
+	    			else if (bestFitBlock->size > currMetaData->size){
 	    				bestFitBlock = currMetaData;
 	    				//cprintf("new smaller block allocated\n");
 	    			}
@@ -223,19 +248,20 @@ void *alloc_block_BF(uint32 size)
 //	    				//break;
 //	    			}
 	    		}
-	    		else {
+	    		//else {
 	    			//cprintf("emptyspace not bigger than size?\n");
-	    		}
+	    		//}
 	    	}
 	    }
 	    if (bestFitBlock == NULL){
 	    	if (sbrk(size) != (void*)-1) {
 	    		//cprintf("called again \n");
 	    		alloc_block_BF(size);
-	    	}else{
+	    	}
+	    	//else{
 	    		//cprintf("didn't enter sbrk\n");
 
-	    	}
+	    	//}
 	    	return 0;
 	    }
 
@@ -289,30 +315,34 @@ void free_block(void *va)
 	struct BlockMetaData *currMetaData = ((struct BlockMetaData *)va - 1);
 	struct BlockMetaData *first_element = LIST_FIRST(&MemoryList);
 	struct BlockMetaData *last_element = LIST_LAST(&MemoryList);
+	struct BlockMetaData *nextMetaData = getRealNextMetaData(currMetaData);
+	struct BlockMetaData *prevMetaData = getRealPrevMetaData(currMetaData);
 
 
 	if(!(currMetaData == first_element || currMetaData == last_element))
 	{
-		if(currMetaData->prev_next_info.le_next->is_free == 1 && currMetaData->prev_next_info.le_prev->is_free == 1) //next and prev  are empty
+		if(nextMetaData->is_free == 1 && prevMetaData->is_free == 1) //next and prev  are empty
 		{
-			currMetaData->prev_next_info.le_prev->size += currMetaData->size + currMetaData->prev_next_info.le_next->size;
-			setVBlock0(currMetaData->prev_next_info.le_next);
+			prevMetaData->size += currMetaData->size + nextMetaData->size;
+			setVBlock0(nextMetaData);
 			setVBlock0(currMetaData);
-			//LIST_REMOVE(&MemoryList ,currMetaData->prev_next_info.le_next);
+			//LIST_REMOVE(&MemoryList ,nextMetaData);
 			//LIST_REMOVE(&MemoryList ,currMetaData);
 		}
-		else if(currMetaData->prev_next_info.le_next->is_free == 0 && currMetaData->prev_next_info.le_prev->is_free == 0)//next and prev  are not empty
+		else if (nextMetaData->is_free == 0 && prevMetaData->is_free == 0)//next and prev  are not empty
 		{
 			currMetaData->is_free = 1;
-		}else if(currMetaData->prev_next_info.le_next->is_free == 1 && currMetaData->prev_next_info.le_prev->is_free == 0)// next is empty
+		}
+		else if(nextMetaData->is_free == 1 && prevMetaData->is_free == 0)// next is empty
 		{
-			currMetaData->size += currMetaData->prev_next_info.le_next->size;
+			currMetaData->size += nextMetaData->size;
 			currMetaData->is_free = 1;
-			setVBlock0(currMetaData->prev_next_info.le_next);
-			//LIST_REMOVE(&MemoryList ,currMetaData->prev_next_info.le_next);
-		}else if(currMetaData->prev_next_info.le_next->is_free == 0 && currMetaData->prev_next_info.le_prev->is_free == 1) // prev is empty
+			setVBlock0(nextMetaData);
+			//LIST_REMOVE(&MemoryList ,nextMetaData);
+		}
+		else if(nextMetaData->is_free == 0 && prevMetaData->is_free == 1) // prev is empty
 		{
-			currMetaData->prev_next_info.le_prev->size += currMetaData->size;
+			prevMetaData->size += currMetaData->size;
 			setVBlock0(currMetaData);
 
 			//LIST_REMOVE(&MemoryList ,currMetaData);
@@ -320,11 +350,11 @@ void free_block(void *va)
 	}
 	else if(currMetaData == first_element)
 	{
-		if(currMetaData->prev_next_info.le_next->is_free == 1)
+		if(nextMetaData->is_free == 1)
 		{
-			currMetaData->size += currMetaData->prev_next_info.le_next->size;
+			currMetaData->size += nextMetaData->size;
 			currMetaData->is_free = 1;
-			setVBlock0(currMetaData->prev_next_info.le_next);
+			setVBlock0(nextMetaData);
 		}
 		else
 		{
@@ -334,9 +364,9 @@ void free_block(void *va)
 	}
 	else if(currMetaData == last_element)
 	{
-		if(currMetaData->prev_next_info.le_prev->is_free == 1)
+		if(prevMetaData->is_free == 1)
 		{
-			currMetaData->prev_next_info.le_prev->size += currMetaData->size;
+			prevMetaData->size += currMetaData->size;
 			setVBlock0(currMetaData);
 		}
 		else
@@ -371,11 +401,7 @@ void *realloc_block_FF(void* va, uint32 new_size)
 
 	struct BlockMetaData *currMetaData = ((struct BlockMetaData *)va - 1);
 	uint32 totalSize = 0 ;
-	struct BlockMetaData *NextMetaData = LIST_NEXT(currMetaData);
-	while(NextMetaData != NULL && NextMetaData->size == 0)  // get the really next node
-	{
-		NextMetaData = LIST_NEXT(NextMetaData);
-	}
+	struct BlockMetaData *NextMetaData = getRealNextMetaData(currMetaData);
 
 	if(NextMetaData != NULL)  // if it has a next node
 	{
