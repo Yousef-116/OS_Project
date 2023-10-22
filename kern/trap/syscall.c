@@ -520,11 +520,7 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 
 	switch(syscallno)
 	{
-<<<<<<< HEAD
 	///2023/
-=======
-	/*2023*/
->>>>>>> d11e635e5a0c3ce2a36440730b89f077fd6339de
 	//TODO: [PROJECT'23.MS1 - #4] [2] SYSTEM CALLS - Add suitable code her
 
 	case SYS_sbrk:
