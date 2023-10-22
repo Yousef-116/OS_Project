@@ -144,6 +144,7 @@ void *alloc_block_FF(uint32 size)
    // int ctr = 1;
     LIST_FOREACH(currMetaData, &MemoryList)
     {
+
     	//cprintf("B%d BlockSize=%u\n", ctr++, currMetaData->size);
     	// found suitable size
     	if(currMetaData->is_free)
@@ -188,8 +189,76 @@ void *alloc_block_FF(uint32 size)
 void *alloc_block_BF(uint32 size)
 {
 	//TODO: [PROJECT'23.MS1 - BONUS] [3] DYNAMIC ALLOCATOR - alloc_block_BF()
-	panic("alloc_block_BF is not implemented yet");
-	return NULL;
+	//panic("alloc_block_BF is not implemented yet");
+	 if(size==0) return NULL;
+
+	    struct BlockMetaData *currMetaData;
+	    struct BlockMetaData *bestFitBlock = NULL;
+
+	    uint32 emptySpace, remSpace;
+	  // int ctr = 1;
+	    LIST_FOREACH(currMetaData, &MemoryList)
+	    {
+	    	//cprintf("ctr: %d\n", ctr++);
+	    	//cprintf("B%d BlockSize=%u\n", ctr++, currMetaData->size);
+	    	// found suitable size
+	    	if(currMetaData->is_free)
+	    	{
+	    		//cprintf("\ncurrMetaData is free\n");
+	    		emptySpace = currMetaData->size - sizeOfMetaData();
+	    		if(emptySpace >= size)
+	    		{
+	    			//cprintf("empty space is bigger than size\n");
+	    			if(bestFitBlock == NULL){
+	    				bestFitBlock = currMetaData;
+	    				//cprintf("bestFitBlock is no longer null\n");
+	    			}
+	    			else if (bestFitBlock->size >= currMetaData->size){
+	    				bestFitBlock = currMetaData;
+	    				//cprintf("new smaller block allocated\n");
+	    			}
+//	    			else {
+//	    				bestFitBlock = currMetaData;
+//	    				//cprintf("allocated perfect fit block\n");
+//	    				//break;
+//	    			}
+	    		}
+	    		else {
+	    			//cprintf("emptyspace not bigger than size?\n");
+	    		}
+	    	}
+	    }
+	    if (bestFitBlock == NULL){
+	    	if (sbrk(size) != (void*)-1) {
+	    		//cprintf("called again \n");
+	    		alloc_block_BF(size);
+	    	}else{
+	    		//cprintf("didn't enter sbrk\n");
+
+	    	}
+	    	return 0;
+	    }
+
+	    bestFitBlock->is_free = 0;
+	    emptySpace = bestFitBlock->size - sizeOfMetaData();
+		remSpace = emptySpace - size;
+		//cprintf("remSpace=%u\n", remSpace);
+
+		if(remSpace > sizeOfMetaData()) // there is a space for another MetaData
+		{
+			bestFitBlock->size -= remSpace;
+
+			struct BlockMetaData *newMetaData = (struct BlockMetaData *)((uint32)bestFitBlock + size + sizeOfMetaData());
+			newMetaData->is_free = 1;
+			newMetaData->size = remSpace;
+			LIST_INSERT_AFTER(&MemoryList, bestFitBlock, newMetaData);
+
+			//cprintf("newBlockSize=%u\n", newMetaData->size);
+			//cprintf("done%d\n", done++);
+		}
+	    //cprintf("failed\n");
+
+	    return bestFitBlock+1;
 }
 
 //=========================================
