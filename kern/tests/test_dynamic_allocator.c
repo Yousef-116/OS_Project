@@ -1438,6 +1438,65 @@ void test_realloc_block_FF()
 		eval += 30;
 	}
 
+	//=====================================================================================
+	//=====================================================================================
+
+	//[4.1] next block is full (NO coalesce)
+	cprintf("	4.2: next block is empty (coalesce)\n\n") ;
+	is_correct = 1;
+	{
+		blockIndex = 1*allocCntPerSize - 1; /*4KB*/
+		old_size = allocSizes[0] /*4KB*/;
+		new_size = old_size - 1*kilo - sizeOfMetaData();
+		//cprintf("REALLOCATE to size %d\n",new_size ) ;
+		va = realloc_block_FF(startVAs[blockIndex], new_size);
+
+		//check return address
+		if(va == NULL || (va != startVAs[blockIndex]))
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #15.1: WRONG REALLOC - it return wrong address. Expected %x, Actual %x\n", startVAs[blockIndex] ,va);
+		}
+		//check reallocated block size & status
+		block_size = get_block_size(startVAs[blockIndex]) ;
+		if (block_size != new_size + sizeOfMetaData())
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #15.2: WRONG REALLOC! block size after realloc is not correct. Expected %d, Actual %d\n",new_size + sizeOfMetaData(), block_size);
+		}
+		block_status = is_free_block(startVAs[blockIndex]) ;
+		if (block_status != 0)
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #15.3: WRONG REALLOC! block status (is_free) not equal 0 after realloc.\n");
+		}
+		//check new free block
+		struct BlockMetaData *newBlkMetaData = (struct BlockMetaData *)(va + new_size);
+		//expected_size = 5*kilo ;
+		expected_size = allocSizes[1] + 1*kilo;
+		if (newBlkMetaData->size != expected_size || newBlkMetaData->is_free != 1)
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #15.4: WRONG REALLOC! newly created block is not correct... check it!. Expected %d, Actual %d\n", expected_size, newBlkMetaData->size);
+		}
+		//check vanishing block (if any)
+		if (get_block_size(startVAs[blockIndex+1]) != 0 || is_free_block(startVAs[blockIndex+1]) != 0)
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #15.5: WRONG REALLOC! make sure to ZEROing the size & is_free values of the vanishing block.\n");
+		}
+		//check content of reallocated block
+		if (*(startVAs[blockIndex]) != blockIndex || *(midVAs[blockIndex]) != blockIndex)
+		{
+			is_correct = 0;
+			cprintf("test_realloc_block_FF #15.6: WRONG REALLOC! content of the block is not correct. Expected %d\n", blockIndex);
+		}
+	}
+	if (is_correct)
+	{
+		eval += 30;
+	}
+
 
 	cprintf("test realloc_block with FIRST FIT completed. Evaluation = %d%\n", eval);
 
