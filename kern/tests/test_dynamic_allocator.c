@@ -48,6 +48,7 @@ void test_initialize_dynamic_allocator()
 #define allocCntPerSize 200
 //NOTE: these sizes include the size of MetaData within it
 uint32 allocSizes[numOfAllocs] = {4*kilo, 20*sizeof(char) + sizeOfMetaData(), 1*kilo, 3*sizeof(int) + sizeOfMetaData(), 2*kilo, 2*sizeOfMetaData(), 7*kilo} ;
+// 4*1024, 20+16, 1*1024, 3*4 + 16, 2*1024, 2*16, 7*1024
 short* startVAs[numOfAllocs*allocCntPerSize+1] ;
 short* midVAs[numOfAllocs*allocCntPerSize+1] ;
 short* endVAs[numOfAllocs*allocCntPerSize+1] ;
@@ -1254,7 +1255,7 @@ void test_realloc_block_FF()
 	}
 
 	//====================================================================//
-	//[2] Test krealloc by passing size = 0. It should call free
+	//[2] Test realloc by passing size = 0. It should call free
 	//====================================================================//
 	cprintf("2: Test calling realloc with SIZE = 0.[10%]\n\n") ;
 	is_correct = 1;
@@ -1262,7 +1263,7 @@ void test_realloc_block_FF()
 	//Free set of blocks with different sizes (first block of each size)
 	for (int i = 0; i < numOfAllocs; ++i)
 	{
-		va = realloc_block_FF(startVAs[i*allocCntPerSize], 0);
+		va = realloc_block_FF(startVAs[i*allocCntPerSize], 0);  //free
 		uint32 block_size = get_block_size(startVAs[i*allocCntPerSize]) ;
 		if (block_size != allocSizes[i])
 			panic("test_realloc_block_FF #4.%d: WRONG FREE! block size after free is not correct. Expected %d, Actual %d",i, allocSizes[i],block_size);
@@ -1343,7 +1344,7 @@ void test_realloc_block_FF()
 		eval += 25;
 	}
 
-	//[3.2] reallocate in same place (NO relocate - NO split)
+	//[3.2] reallocate in same place (NO relocate - NO split)  //same size
 	cprintf("	3.2: reallocate in same place (NO relocate - NO split)\n\n") ;
 	is_correct = 1;
 	{
@@ -1438,6 +1439,9 @@ void test_realloc_block_FF()
 	{
 		eval += 30;
 	}
+
+//	print_blocks_list(MemoryList);
+//	return;
 
 	//=====================================================================================
 	//=====================================================================================

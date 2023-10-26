@@ -222,12 +222,14 @@ void *alloc_block_BF(uint32 size)
 	    	if(currBlock->is_free)
 	    	{
 	    		emptySpace = currBlock->size - sizeOfMetaData();
-	    		if(emptySpace >= size)
+	    		if(emptySpace == size)
 	    		{
-	    			if(bestFitBlock == NULL){
-	    				bestFitBlock = currBlock;
-	    			}
-	    			else if (bestFitBlock->size > currBlock->size){
+	    			currBlock->is_free = 0;
+	    			return currBlock+1;
+	    		}
+	    		if(emptySpace > size)
+	    		{
+	    			if(bestFitBlock == NULL || bestFitBlock->size > currBlock->size){
 	    				bestFitBlock = currBlock;
 	    			}
 	    		}
