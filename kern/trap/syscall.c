@@ -527,13 +527,13 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		return (uint32) sys_sbrk((int) a1);
 		break;
 	case SYS_free_user_mem:
-		if((uint32 *)a1 != NULL && (a1+a2) < USER_LIMIT && a1 < USER_LIMIT && a2 > 0){
+		if((uint32 *)a1 != NULL && a1 > 0 && (a1+a2) < USER_LIMIT && a1 < USER_LIMIT && a2 > 0){
 			sys_free_user_mem(a1, a2);
 			return 0;
 		}else sched_kill_env(curenv->env_id);
 		break;
 	case SYS_allocate_user_mem:
-		if((uint32 *)a1 != NULL && (a1+a2) < USER_LIMIT && a1 < USER_LIMIT && a2 > 0){
+		if((uint32 *)a1 != NULL && a1 > 0 && (a1+a2) < USER_LIMIT && a1 < USER_LIMIT && a2 > 0){
 			sys_allocate_user_mem(a1, a2);
 			return 0;
 		}else sched_kill_env(curenv->env_id);
