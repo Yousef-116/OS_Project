@@ -1650,10 +1650,10 @@ void test_realloc_block_FF()
 	//====================================================================//
 	//[3] Test calling realloc in tail Block
 	//====================================================================//
-	cprintf("3: Test calling realloc in tail Block [30%].\n\n");
+	cprintf("3: Test calling realloc in tail block [30%].\n\n");
 
 	//[6.1] reallocate tail node with same size
-	cprintf("	3.1: reallocate tail node with same size\n\n") ;
+	cprintf("	3.1: reallocate with same size\n\n") ;
 	is_correct = 1;
 	{
 		blockIndex = 7*allocCntPerSize;
@@ -1692,11 +1692,11 @@ void test_realloc_block_FF()
 	}
 
 	//[6.2] reallocate tail node with smaller size
-	cprintf("	3.2: reallocate tail node with smaller size\n\n") ;
+	cprintf("	3.2: reallocate with smaller size\n\n") ;
 	is_correct = 1;
 	{
 		blockIndex = 7*allocCntPerSize;
-		new_size = get_block_size(startVAs[blockIndex]) - 1*kilo - sizeOfMetaData() ;
+		new_size = get_block_size(startVAs[blockIndex]) - 6*kilo - sizeOfMetaData() ;
 		va = realloc_block_FF(startVAs[blockIndex], new_size);
 
 		//check return address
@@ -1719,7 +1719,7 @@ void test_realloc_block_FF()
 		}
 		//check new free block
 		struct BlockMetaData *newBlkMetaData = (struct BlockMetaData *)(va + new_size);
-		expected_size = 1*kilo;
+		expected_size = 6*kilo;
 		if (newBlkMetaData->size != expected_size || newBlkMetaData->is_free != 1)
 		{
 			is_correct = 0;
@@ -1737,16 +1737,41 @@ void test_realloc_block_FF()
 		eval += 10;
 	}
 
+//	//====================================================================//
+//	/* Allocate the 7K block of index 1200*/
+//	actualSize = get_block_size(startVAs[1200]) /*7K*/- sizeOfMetaData();
+//	va = realloc_block_FF(NULL, actualSize);
+//	//Check returned va
+//	if(va == NULL || (va != startVAs[1200]))
+//		panic("test_realloc_block_FF #2: WRONG ALLOC - it return wrong address.");
+//
+//	//====================================================================//
+//	/* Allocate the tail block of size 6K*/
+	void * tail_address = (void *)((uint32)startVAs[blockIndex] + get_block_size(startVAs[blockIndex]));
+//	actualSize = 6*kilo /*7K*/- sizeOfMetaData();
+//	va = realloc_block_FF(NULL, actualSize);
+//	//Check returned va
+//	if(va == NULL || (va != tail_address))
+//		panic("test_realloc_block_FF #2: WRONG ALLOC - it return wrong address.");
+//
+//	//====================================================================//
+//	/* Allocate the 7K block of index 1200*/
+//	actualSize = get_block_size(startVAs[1200]) /*7K*/- sizeOfMetaData();
+//	va = realloc_block_FF(startVAs[1200], 0);
+//	//Check returned va
+//	if(va != NULL)
+//		panic("test_realloc_block_FF #7: it should return NULL.");
+//
+//	//====================================================================//
 
-	//[3.3] reallocate tail node with larger size
-	cprintf("	3.3: reallocate tail node with larger size\n\n") ;
+
+	//[3.3] reallocate tail node with greater size
+	cprintf("	3.3: reallocate with greater size\n\n") ;
 	is_correct = 1;
 	{
 		blockIndex = 7*allocCntPerSize;
 		new_size =  7*kilo - sizeOfMetaData() ;
 		//void * tail_address = LIST_LAST(&MemoryList) + 1;
-		void * tail_address = (void *)((uint32)startVAs[blockIndex] + get_block_size(startVAs[blockIndex]));
-
 		va = realloc_block_FF(tail_address, new_size);
 		//check return address
 		if(va == NULL || (va != startVAs[6*allocCntPerSize]))
@@ -1773,6 +1798,22 @@ void test_realloc_block_FF()
 		eval += 10;
 	}
 
+//	//====================================================================//
+//	//[4] Test calling realloc with a free block
+//	//====================================================================//
+//	cprintf("3: Test calling realloc with a free block [15%].\n\n");
+//	blockIndex = 1*allocCntPerSize;
+//	new_size =  1*kilo - sizeOfMetaData() ;
+//	va = realloc_block_FF(startVAs[blockIndex], new_size);
+//	//check return address
+//	if(va != NULL){
+//		is_correct = 0;
+//		panic("test_realloc_block_FF #7: it should return NULL.");
+//	}
+//	if (is_correct)
+//	{
+//		eval += 15;
+//	}
 	cprintf("test realloc_block with FIRST FIT completed. Evaluation = %d%\n", eval);
 }
 

@@ -368,6 +368,9 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	    free_block(va);
 	    return NULL;
 	}
+//	else if(is_free_block(va)){
+//		return NULL;
+//	}
 
 	struct BlockMetaData *currBlock = ((struct BlockMetaData *)va - 1);
 	uint32 totalFreeSize, remSpace ;
