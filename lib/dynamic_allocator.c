@@ -22,35 +22,12 @@ void setVBlock0(struct BlockMetaData *MetaData)
 	//free(MetaData);
 }
 
-//struct BlockMetaData *getRealNextBlock(struct BlockMetaData *currBlock)
-//{
-//	struct BlockMetaData *nextBlock = LIST_NEXT(currBlock);
-//	while(nextBlock != NULL && nextBlock->size == 0)  // get the really next node
-//	{
-//		nextBlock = LIST_NEXT(nextBlock);
-//	}
-//
-//	return nextBlock;
-//}
-//
-//struct BlockMetaData *getRealPrevBlock(struct BlockMetaData *currBlock)
-//{
-//	struct BlockMetaData *prevBlock = LIST_PREV(currBlock);
-//	while(prevBlock != NULL && prevBlock->size == 0)  // get the really prev node
-//	{
-//		prevBlock = LIST_PREV(prevBlock);
-//	}
-//
-//	return prevBlock;
-//}
-//
-
 void *free_and_allocff(void* va, uint32 new_size)
 {
-	free_block(va);
 	void * ret = alloc_block_FF(new_size);
 	if(ret != NULL)  //allocation succeeded
 	{
+		free_block(va);
 		return ret;
 	}
 	else {  // allocation failed
@@ -368,9 +345,9 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	    free_block(va);
 	    return NULL;
 	}
-//	else if(is_free_block(va)){
-//		return NULL;
-//	}
+	else if(is_free_block(va)){
+		return NULL;
+	}
 
 	struct BlockMetaData *currBlock = ((struct BlockMetaData *)va - 1);
 	uint32 totalFreeSize, remSpace ;
@@ -416,17 +393,8 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	    		//cprintf("\n>>>>>>>>>8 \n");
 				split_block(currBlock,new_size);
 			}
-			//======================================================================//
-			//======================================================================//
 			else // next is free
 			{
-	    		//cprintf("\n>>>>>>>>>9 \n");
-//				//nextBlock->size += (currBlock->size - new_size);
-//				remSpace = (currBlock->size - new_size - sizeOfMetaData());
-//				nextBlock->size += remSpace;
-//				currBlock->size = new_size + sizeOfMetaData();
-//				nextBlock = (struct BlockMetaData *)((uint32)currBlock + currBlock->size);
-
 	    		remSpace = (currBlock->size - new_size - sizeOfMetaData());
 	    		currBlock->size = new_size + sizeOfMetaData();
 	    		struct BlockMetaData *newBlock = (struct BlockMetaData *)((uint32)currBlock + currBlock->size);
@@ -435,8 +403,6 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	    		LIST_INSERT_AFTER(&MemoryList, currBlock, newBlock);
 	    		setVBlock0(nextBlock);
 			}
-			//======================================================================//
-			//======================================================================//
 			return va;
 		}
 		else if ( currBlock->size - sizeOfMetaData() == new_size ) // new size is equal to current size
@@ -454,11 +420,6 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		}
 		else if(currBlock->size - sizeOfMetaData() > new_size)  // new size is smaller than current (last) size
 		{
-//			struct BlockMetaData *newBlock = (struct BlockMetaData *)((uint32)currBlock + new_size + sizeOfMetaData());
-//			newBlock->is_free = 1;
-//			newBlock->size = currBlock->size - new_size- sizeOfMetaData();
-//			currBlock->size = new_size + sizeOfMetaData();
-//			LIST_INSERT_AFTER(&MemoryList, currBlock, newBlock);
 			split_block(currBlock,new_size);
     		//cprintf("\n>>>>>>>>>12 \n");
 			return va;
