@@ -339,7 +339,7 @@ void* sys_sbrk(int increment)
 	//Comment the following line before start coding...
 	//panic("not implemented yet");
 
-	uint32 ret = syscall(SYS_sbrk, (uint32) increment, 5, 5, 5, 5);
+	uint32 ret = syscall(SYS_sbrk, (uint32) increment, 0, 0, 0, 0);
 	return (void *) ret;
 }
 
