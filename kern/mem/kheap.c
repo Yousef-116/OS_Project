@@ -145,7 +145,23 @@ unsigned int kheap_physical_address(unsigned int virtual_address)
 	//TODO: [PROJECT'23.MS2 - #06] [1] KERNEL HEAP - kheap_physical_address()
 	//refer to the project presentation and documentation for details
 	// Write your code here, remove the panic and write your code
-	panic("kheap_physical_address() is not implemented yet...!!");
+	//panic("kheap_physical_address() is not implemented yet...!!");
+
+
+	uint32 *ptr_page_table = NULL;
+	unsigned int ret = get_page_table(ptr_page_directory, virtual_address, &ptr_page_table);
+	if (ret == TABLE_IN_MEMORY)
+	{
+		uint32 table_entry = ptr_page_table[PTX(virtual_address)];
+
+		uint32 frame_number = table_entry >> 12;
+
+		uint32 mask = 0xFFF;
+
+		uint32 offset = virtual_address & mask;
+
+		return (frame_number * 4 * sizeof(char) * 1024) + offset;
+	}
 
 	//change this "return" according to your answer
 	return 0;
