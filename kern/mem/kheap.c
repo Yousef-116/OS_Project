@@ -23,8 +23,9 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 	{
 		start = daStart;
 		sBreak = daStart + initSizeToAllocate;
-		ROUNDUP(sBreak,PAGE_SIZE);
+		sBreak = ROUNDUP(sBreak, PAGE_SIZE);
 		hLimit = daLimit;
+		numOfFreePages = (KERNEL_HEAP_MAX - hLimit - PAGE_SIZE)/PAGE_SIZE;
 
 		for(uint32 va = daStart; va < sBreak; va += PAGE_SIZE)
 		{
@@ -34,6 +35,9 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 		}
 
 		initialize_dynamic_allocator(daStart, initSizeToAllocate);
+//		cprintf("KheapMax - hLimit - 4K = %x\n", KERNEL_HEAP_MAX - hLimit - PAGE_SIZE);
+//		cprintf("(KheapMax - hLimit - 4K)/PAGE_SIZE = %d\n", (KERNEL_HEAP_MAX - hLimit - PAGE_SIZE)/PAGE_SIZE);
+//		cprintf("NUM_OF_KHEAP_PAGES = %d\n", NUM_OF_KHEAP_PAGES);
 		return 0;
 	}
 
@@ -71,7 +75,47 @@ void* kmalloc(unsigned int size)
 	// use "isKHeapPlacementStrategyFIRSTFIT() ..." functions to check the current strategy
 
 	//change this "return" according to your answer
-	kpanic_into_prompt("kmalloc() is not implemented yet...!!");
+	//kpanic_into_prompt("kmalloc() is not implemented yet...!!");
+
+	//cprintf("size = %u\n", size);
+	if(isKHeapPlacementStrategyFIRSTFIT())
+	{
+		if(size <= DYN_ALLOC_MAX_BLOCK_SIZE)
+		{
+			//cprintf("dynamic allocator\n");
+			return alloc_block_FF(size);
+		}
+
+		uint32 _size = size;
+		int num_of_req_pages = ROUNDUP(_size, PAGE_SIZE) / PAGE_SIZE;
+		//cprintf("num_of_req_pages = %d\n", num_of_req_pages);
+		if(num_of_req_pages > numOfFreePages){
+			//cprintf("not enought pages: %d < %d\n",numOfFreePages, num_of_req_pages);
+			return NULL;
+		}
+
+		uint32 *ptr_page_table = NULL;
+		uint32 _1stVa = -1;
+		for(uint32 va = hLimit + PAGE_SIZE; num_of_req_pages > 0 && va <= KERNEL_HEAP_MAX - PAGE_SIZE; va += PAGE_SIZE)
+		{
+			if(get_frame_info(ptr_page_directory, va, &ptr_page_table) != NULL){
+				//cprintf("An allocated page skiped\n");
+				continue;
+			}
+
+			//cprintf("here\n");
+			struct FrameInfo *ptr_frame_info;
+			int ret = allocate_frame(&ptr_frame_info);
+			ret = map_frame(ptr_page_directory, ptr_frame_info, va, PERM_WRITEABLE);
+			--num_of_req_pages;
+			--numOfFreePages;
+			if(_1stVa == -1)_1stVa = va;
+		}
+		//cprintf("num_of_req_pages after the loop= %d\n", num_of_req_pages);
+		//cprintf("out\n\n");
+		return (void *)(_1stVa);
+	}
+
 	return NULL;
 }
 
