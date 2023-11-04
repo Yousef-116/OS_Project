@@ -16,8 +16,28 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 	//	Otherwise (if no memory OR initial size exceed the given limit): E_NO_MEM
 
 	//Comment the following line(s) before start coding...
-	panic("not implemented yet");
-	return 0;
+	//panic("not implemented yet");
+
+
+	if(daStart + initSizeToAllocate <= daLimit)
+	{
+		start = daStart;
+		sBreak = daStart + initSizeToAllocate;
+		ROUNDUP(sBreak,PAGE_SIZE);
+		hLimit = daLimit;
+
+		for(uint32 va = daStart; va < sBreak; va += PAGE_SIZE)
+		{
+			struct FrameInfo *ptr_frame_info;
+			int ret = allocate_frame(&ptr_frame_info);
+			ret = map_frame(ptr_page_directory, ptr_frame_info, va, PERM_WRITEABLE);
+		}
+
+		initialize_dynamic_allocator(daStart, initSizeToAllocate);
+		return 0;
+	}
+
+	return E_NO_MEM;
 }
 
 void* sbrk(int increment)
