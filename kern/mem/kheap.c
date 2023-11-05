@@ -29,11 +29,12 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 		hLimit = daLimit;
 		numOfFreePages = (KERNEL_HEAP_MAX - hLimit - PAGE_SIZE)/PAGE_SIZE;
 
-		for(uint32 va = daStart; va < brk; va += PAGE_SIZE)
+		for(uint32 va = daStart; va <= brk; va += PAGE_SIZE)
 		{
 			struct FrameInfo *ptr_frame_info;
 			int ret = allocate_frame(&ptr_frame_info);
 			ret = map_frame(ptr_page_directory, ptr_frame_info, va, PERM_WRITEABLE);
+			ptr_frame_info->va = va;
 		}
 
 		initialize_dynamic_allocator(daStart, initSizeToAllocate);
@@ -90,6 +91,7 @@ void* sbrk(int increment)
 			panic("\nERROR_3 - cannot map to frame, no memory\n");
 		}
 
+		ptr_frame_info->va = old_brk;
 		struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
 		meta_data->size = PAGE_SIZE;
 		meta_data->is_free = 1;
@@ -186,6 +188,7 @@ void kfree(void* virtual_address)
 	else if((uint32) virtual_address >= (hLimit + PAGE_SIZE) && (uint32) virtual_address <= KERNEL_HEAP_MAX - PAGE_SIZE)
 	{
 		int index = ((uint32)virtual_address  - KERNEL_HEAP_START) / PAGE_SIZE;
+		//cprintf("index = %d \n" , manga[index]);
 		uint32 noOfBrothers =  manga[index];
 
 		for(uint32 va = (uint32)virtual_address ;noOfBrothers > 0 ; --noOfBrothers , va += PAGE_SIZE)
@@ -210,6 +213,10 @@ unsigned int kheap_virtual_address(unsigned int physical_address)
 
 	struct FrameInfo *ptr_frame_info = to_frame_info(physical_address);
 
+//	cprintf("va  = %x \n" ,ptr_frame_info->va);
+//	cprintf("ref  = %x \n" ,ptr_frame_info->references);
+	//cprintf("pa actual = %x \n" ,physical_address);
+
 	if(ptr_frame_info->references == 0)	return 0;
 	else
 	{
@@ -217,7 +224,12 @@ unsigned int kheap_virtual_address(unsigned int physical_address)
 
 		uint32 offset = physical_address & mask;
 
-        return ptr_frame_info->va + offset;
+//		cprintf("offset = %x \n" , offset);
+
+
+		//cprintf("virtual = %x \n" ,(ptr_frame_info->va) + offset);
+
+        return (ptr_frame_info->va) + offset;
 	}
 	//change this "return" according to your answer
 	//return 0;
