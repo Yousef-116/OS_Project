@@ -4,6 +4,7 @@
 #include <inc/dynamic_allocator.h>
 #include "memory_manager.h"
 
+int arr[(KERNEL_HEAP_MAX - KERNEL_HEAP_START)/PAGE_SIZE] = {};
 
 int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate, uint32 daLimit)
 {
@@ -135,21 +136,49 @@ void* kmalloc(unsigned int size)
 
 		uint32 *ptr_page_table = NULL;
 		uint32 _1stVa = -1;
-		for(uint32 va = hLimit + PAGE_SIZE; num_of_req_pages > 0 && va <= KERNEL_HEAP_MAX - PAGE_SIZE; va += PAGE_SIZE)
+
+		int ctr = 0;
+		for(uint32 va = hLimit + PAGE_SIZE; ctr < num_of_req_pages && va <= KERNEL_HEAP_MAX - PAGE_SIZE; va += PAGE_SIZE)
 		{
 			if(get_frame_info(ptr_page_directory, va, &ptr_page_table) != NULL){
 				//cprintf("An allocated page skiped\n");
+				ctr = 0;
 				continue;
 			}
+			if(ctr == 0)_1stVa = va;
+			ctr++;
+		}
+		if(ctr == 0){
+			cprintf("didn't found\n");
+			return NULL;
+		}
 
-			//cprintf("here\n");
+		int index = (_1stVa  - KERNEL_HEAP_START)/PAGE_SIZE;
+		arr[index] = num_of_req_pages;
+
+		cprintf("found\n");
+		numOfFreePages -= num_of_req_pages;
+		for(uint32 va = _1stVa; num_of_req_pages > 0; va += PAGE_SIZE, --num_of_req_pages)
+		{
 			struct FrameInfo *ptr_frame_info;
 			int ret = allocate_frame(&ptr_frame_info);
 			ret = map_frame(ptr_page_directory, ptr_frame_info, va, PERM_WRITEABLE);
-			--num_of_req_pages;
-			--numOfFreePages;
-			if(_1stVa == -1)_1stVa = va;
 		}
+//		for(uint32 va = hLimit + PAGE_SIZE; num_of_req_pages > 0 && va <= KERNEL_HEAP_MAX - PAGE_SIZE; va += PAGE_SIZE)
+//		{
+//			if(get_frame_info(ptr_page_directory, va, &ptr_page_table) != NULL){
+//				//cprintf("An allocated page skiped\n");
+//				continue;
+//			}
+//
+//			//cprintf("here\n");
+//			struct FrameInfo *ptr_frame_info;
+//			int ret = allocate_frame(&ptr_frame_info);
+//			ret = map_frame(ptr_page_directory, ptr_frame_info, va, PERM_WRITEABLE);
+//			--num_of_req_pages;
+//			--numOfFreePages;
+//			if(_1stVa == -1)_1stVa = va;
+//		}
 		//cprintf("num_of_req_pages after the loop= %d\n", num_of_req_pages);
 		//cprintf("out\n\n");
 		return (void *)(_1stVa);
@@ -185,7 +214,6 @@ unsigned int kheap_physical_address(unsigned int virtual_address)
 	//refer to the project presentation and documentation for details
 	// Write your code here, remove the panic and write your code
 	//panic("kheap_physical_address() is not implemented yet...!!");
-
 
 	uint32 *ptr_page_table = NULL;
 	unsigned int ret = get_page_table(ptr_page_directory, virtual_address, &ptr_page_table);
