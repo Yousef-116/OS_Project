@@ -64,8 +64,45 @@ void* sbrk(int increment)
 	 */
 
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
-	return (void*)-1 ;
-	panic("not implemented yet");
+	//return (void*)-1 ;
+	//panic("not implemented yet");
+
+	uint32 old_brk = brk;
+	if (increment > 0)
+	{
+		increment = ROUNDUP(increment, PAGE_SIZE);
+
+		if (brk + increment >= hLimit)
+			panic("\nERROR_1 - brk + increment >= hLimit\n");
+
+		brk += increment;
+
+		struct FrameInfo *ptr_frame_info = NULL;
+		int ret = allocate_frame(&ptr_frame_info);
+		if (ret == E_NO_MEM)
+			panic("\nERROR_2 - cannot allocate frame, no memory\n");
+
+		ret = map_frame(ptr_page_directory, ptr_frame_info, old_brk, PERM_WRITEABLE);
+		if (ret == E_NO_MEM)
+		{
+			free_frame(ptr_frame_info);
+			panic("\nERROR_3 - cannot map to frame, no memory\n");
+		}
+
+		struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
+		meta_data->size = PAGE_SIZE;
+		meta_data->is_free = 1;
+		LIST_INSERT_TAIL(&MemoryList, meta_data);
+		return (void *) old_brk;
+	}
+	else if (increment < 0)
+	{
+		panic("\nERROR_4 - increment < 0 not implemented yet\n");
+	}
+	else // increment == 0
+	{
+		return (void *) old_brk;
+	}
 
 }
 
@@ -162,7 +199,7 @@ unsigned int kheap_physical_address(unsigned int virtual_address)
 
 		uint32 offset = virtual_address & mask;
 
-		return (frame_number * 4 * sizeof(char) * 1024) + offset;
+		return (frame_number * PAGE_SIZE) + offset;
 	}
 
 	//change this "return" according to your answer
