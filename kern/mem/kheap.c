@@ -22,12 +22,13 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 	if(daStart + initSizeToAllocate <= daLimit)
 	{
 		start = daStart;
-		sBreak = daStart + initSizeToAllocate;
-		sBreak = ROUNDUP(sBreak, PAGE_SIZE);
+		brk = ROUNDUP(initSizeToAllocate, PAGE_SIZE);
+		brk += daStart;
+
 		hLimit = daLimit;
 		numOfFreePages = (KERNEL_HEAP_MAX - hLimit - PAGE_SIZE)/PAGE_SIZE;
 
-		for(uint32 va = daStart; va < sBreak; va += PAGE_SIZE)
+		for(uint32 va = daStart; va < brk; va += PAGE_SIZE)
 		{
 			struct FrameInfo *ptr_frame_info;
 			int ret = allocate_frame(&ptr_frame_info);
@@ -65,6 +66,7 @@ void* sbrk(int increment)
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
 	return (void*)-1 ;
 	panic("not implemented yet");
+
 }
 
 

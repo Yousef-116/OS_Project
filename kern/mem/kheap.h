@@ -45,7 +45,7 @@ int numOfKheapVACalls ;
 //TODO: [PROJECT'23.MS2 - #01] [1] KERNEL HEAP - initialization: add suitable code here
 
 uint32 start;
-uint32 sBreak;
+uint32 brk;
 uint32 hLimit;
 uint32 numOfFreePages;
 

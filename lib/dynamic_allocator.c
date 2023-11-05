@@ -188,8 +188,12 @@ void *alloc_block_FF(uint32 size)
     	}
     }
 
-    if(sbrk(size) != (void*)-1){
-    	return alloc_block_FF(size);
+    void * ret = sbrk(size);
+    if(ret != (void*)-1)
+    {
+    	cprintf("\nsbrk called\n");
+    	free_block(ret + sizeOfMetaData()); //to merge
+		return alloc_block_FF(size);
     }
     cprintf("\n======> sbrk called and failed\n");
 
@@ -263,7 +267,6 @@ void *alloc_block_NF(uint32 size)
 void free_block(void *va)
 {
 	//TODO: [PROJECT'23.MS1 - #7] [3] DYNAMIC ALLOCATOR - free_block()
-
 	struct BlockMetaData *currBlock = ((struct BlockMetaData *)va - 1);
 	struct BlockMetaData *first_element = LIST_FIRST(&MemoryList);
 	struct BlockMetaData *last_element = LIST_LAST(&MemoryList);
