@@ -98,7 +98,35 @@ void* sbrk(int increment)
 	}
 	else if (increment < 0)
 	{
-		panic("\nERROR_4 - increment < 0 not implemented yet\n");
+		//panic("\nERROR_4 - increment < 0 not implemented yet\n");
+
+		increment = ROUNDDOWN(increment, PAGE_SIZE);
+
+		if (brk + increment <= start)
+			panic("\nERROR_5 - brk + increment <= start\n");
+
+		brk += increment;
+
+		struct FrameInfo *ptr_frame_info = to_frame_info(brk);
+		if (ptr_frame_info == NULL)
+			panic("\nERROR_6 - cannot find frame to free\n");
+
+		struct BlockMetaData *meta_data = LIST_LAST(&MemoryList);
+
+		if ((uint32)meta_data == (uint32)brk)
+		{
+			LIST_REMOVE(&MemoryList, meta_data);
+		}
+		else if (meta_data->is_free == 1)
+		{
+			meta_data->size -= PAGE_SIZE;
+		}
+
+		unmap_frame(ptr_page_directory, brk);
+		free_frame(ptr_frame_info);
+
+		return (void *) old_brk;
+
 	}
 	else // increment == 0
 	{
