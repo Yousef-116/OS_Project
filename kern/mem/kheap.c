@@ -4,7 +4,10 @@
 #include <inc/dynamic_allocator.h>
 #include "memory_manager.h"
 
-int manga[(KERNEL_HEAP_MAX - KERNEL_HEAP_START)/PAGE_SIZE] = {};
+uint32 numOfFreePages;
+const int manga_size = (KERNEL_HEAP_MAX - KERNEL_HEAP_START)/PAGE_SIZE;
+int manga_strt;
+int manga[(KERNEL_HEAP_MAX - KERNEL_HEAP_START)/PAGE_SIZE + 1] = {};
 
 int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate, uint32 daLimit)
 {
@@ -28,6 +31,9 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 
 		hLimit = daLimit;
 		numOfFreePages = (KERNEL_HEAP_MAX - hLimit - PAGE_SIZE)/PAGE_SIZE;
+		manga_strt = (hLimit + PAGE_SIZE - KERNEL_HEAP_START) / PAGE_SIZE;
+		manga[manga_strt] = manga_strt - manga_size;
+		manga[manga_size - 1] = manga[manga_strt];  // at the end of Brothers
 
 		for(uint32 va = daStart; va <= brk; va += PAGE_SIZE)
 		{
@@ -158,34 +164,53 @@ void* kmalloc(unsigned int size)
 
 		uint32 _size = size;
 		int num_of_req_pages = ROUNDUP(_size, PAGE_SIZE) / PAGE_SIZE;
-		//cprintf("num_of_req_pages = %d\n", num_of_req_pages);
 		if(num_of_req_pages > numOfFreePages){
 			//cprintf("not enought pages: %d < %d\n",numOfFreePages, num_of_req_pages);
 			return NULL;
 		}
 
 		uint32 *ptr_page_table = NULL;
-		uint32 _1stVa = -1;
-
-		int ctr = 0;
-		for(uint32 va = hLimit + PAGE_SIZE; ctr < num_of_req_pages && va <= KERNEL_HEAP_MAX - PAGE_SIZE; va += PAGE_SIZE)
+		uint32 _1stVa;
+		int index = -1;
+		for(int i = manga_strt; i < manga_size; )
 		{
-			if(get_frame_info(ptr_page_directory, va, &ptr_page_table) != NULL){
-				//cprintf("An allocated page skiped\n");
-				ctr = 0;
-				continue;
+			if(manga[i] < 0)
+			{
+				if(-manga[i] == num_of_req_pages)
+				{
+					manga[i - manga[i] - 1] = 0;  // at the end of Brothers
+					manga[i] = num_of_req_pages;
+					index = i;
+					break;
+				}
+				else if(-manga[i] > num_of_req_pages)
+				{
+					manga[i + num_of_req_pages] = manga[i] + num_of_req_pages;
+					manga[i + num_of_req_pages - manga[i + num_of_req_pages] - 1] = manga[i + num_of_req_pages];
+
+					manga[i] = num_of_req_pages;
+
+					index = i;
+					break;
+				}
+				else
+				{
+					i -= manga[i];
+				}
 			}
-			if(ctr == 0)_1stVa = va;
-			ctr++;
+			else {
+				i += manga[i];
+			}
 		}
-		if(ctr == 0){
+
+		if(index == -1){
 			return NULL;
 		}
 
-		int index = (_1stVa  - KERNEL_HEAP_START)/PAGE_SIZE;
 		manga[index] = num_of_req_pages;
-
+		_1stVa = index*PAGE_SIZE + start;
 		numOfFreePages -= num_of_req_pages;
+
 		for(uint32 va = _1stVa; num_of_req_pages > 0; va += PAGE_SIZE, --num_of_req_pages)
 		{
 			struct FrameInfo *ptr_frame_info;
@@ -194,6 +219,7 @@ void* kmalloc(unsigned int size)
 			ptr_frame_info->va = va;
 		}
 		return (void *)(_1stVa);
+
 	}
 
 	return NULL;
@@ -219,11 +245,32 @@ void kfree(void* virtual_address)
 		//cprintf("index = %d \n" , manga[index]);
 		uint32 noOfBrothers =  manga[index];
 
+		if(noOfBrothers == 0) return;
+
 		for(uint32 va = (uint32)virtual_address ;noOfBrothers > 0 ; --noOfBrothers , va += PAGE_SIZE)
 		{
 			unmap_frame(ptr_page_directory ,va);
 		}
-		manga[index] = 0;
+
+		numOfFreePages += manga[index];
+		manga[index] *= -1;
+
+		if(manga[index - manga[index]] < 0) // next are free -> merge
+		{
+			int i = index - manga[index];
+			manga[index] += manga[i];
+			manga[i] = 0;
+		}
+		if(manga[index - 1] < 0) // prev are free -> merge
+		{
+			manga[index + manga[index - 1]] += manga[index];
+			manga[index] = 0;
+			int i = manga[index - 1];
+			manga[index - 1] = 0;
+			index += i;
+		}
+		manga[index - manga[index] - 1] = manga[index];  // at the end of Brothers
+
 	}
 	else
 	{

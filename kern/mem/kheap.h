@@ -47,7 +47,6 @@ int numOfKheapVACalls ;
 uint32 start;
 uint32 brk;
 uint32 hLimit;
-uint32 numOfFreePages;
 
 //====================================================================================
 
