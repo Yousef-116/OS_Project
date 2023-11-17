@@ -22,7 +22,7 @@ void setVBlock0(struct BlockMetaData *MetaData)
 	//free(MetaData);
 }
 
-void *free_and_allocff(void* va, uint32 new_size)
+void *allocff_and_free(void* va, uint32 new_size)
 {
 	void * ret = alloc_block_FF(new_size);
 	if(ret != NULL)  //allocation succeeded
@@ -402,12 +402,12 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		    	else if (totalFreeSize < new_size)    // if next free and total size < new size call free bloc and after allocate the bloc by FF
 		    	{
 		    		//cprintf("\n>>>>>>>>>6 \n");
-		    		return free_and_allocff(va, new_size);
+		    		return allocff_and_free(va, new_size);
 		    	}
 			}
 			else {  // next is not free
 	    		//cprintf("\n>>>>>>>>>7 \n");
-				return free_and_allocff(va, new_size);
+				return allocff_and_free(va, new_size);
 			}
 		}
 		else if ( currBlock->size - sizeOfMetaData() > new_size )  // new size is smaller than current size
@@ -440,7 +440,7 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		if(currBlock->size - sizeOfMetaData() < new_size)// new size is greater than current (last) size
 		{
     		//cprintf("\n>>>>>>>>>11 \n");
-			return free_and_allocff(va, new_size);
+			return allocff_and_free(va, new_size);
 		}
 		else if(currBlock->size - sizeOfMetaData() > new_size)  // new size is smaller than current (last) size
 		{
