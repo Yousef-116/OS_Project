@@ -191,9 +191,9 @@ void *alloc_block_FF(uint32 size)
     void * ret = sbrk(size);
     if(ret != (void*)-1)
     {
-    	cprintf("\nsbrk called\n");
+    	//cprintf("\nsbrk called\n");
     	free_block(ret + sizeOfMetaData()); //to merge
-    	cprintf(" ...... ........... List last size = %d \n" ,LIST_LAST(&MemoryList)->size);
+    	//cprintf(" ...... ........... List last size = %d \n" ,LIST_LAST(&MemoryList)->size);
 
     	currBlock = LIST_LAST(&MemoryList);
     	currBlock->is_free = 0;
@@ -202,7 +202,7 @@ void *alloc_block_FF(uint32 size)
 
 //		return alloc_block_FF(size);
     }
-    cprintf("\n======> sbrk called and failed\n");
+    //cprintf("\n======> sbrk called and failed\n");
 
     return NULL;
 }
