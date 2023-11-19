@@ -9,11 +9,6 @@ const int manga_size = (KERNEL_HEAP_MAX - KERNEL_HEAP_START)/PAGE_SIZE;
 int manga_strt;
 int manga[(KERNEL_HEAP_MAX - KERNEL_HEAP_START)/PAGE_SIZE + 1] = {};
 
-bool compare_perm(int perm0, int perm1, int perm2)
-{
-	return (perm0 & perm1) && (perm0 & perm2);
-}
-
 int va_to_index(void* va)
 {
 	return ((uint32)va  - KERNEL_HEAP_START) / PAGE_SIZE;
@@ -41,11 +36,8 @@ void *kmalloc_and_kfree(void* va, uint32 new_size)
 	if(ret != NULL)  //allocation succeeded
 	{
 		kfree(va);
-		return ret;
 	}
-	else {  // allocation failed
-		return (void*)-1;
-	}
+	return ret;
 }
 
 int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate, uint32 daLimit)
@@ -193,9 +185,6 @@ void* kmalloc(unsigned int size)
 	//kpanic_into_prompt("kmalloc() is not implemented yet...!!");
 
 	//cprintf("size = %u\n", size);
-
-	if(compare_perm(0x011, 0x001, 0x010))
-		cprintf("Yesssss\n");
 	if(isKHeapPlacementStrategyFIRSTFIT())
 	{
 		if(size <= DYN_ALLOC_MAX_BLOCK_SIZE)
@@ -411,20 +400,33 @@ void *krealloc(void *virtual_address, uint32 new_size)
 //	return NULL;
 //	panic("krealloc() is not implemented yet...!!");
 
-	if(virtual_address == NULL && new_size == 0)
+	if(virtual_address < brk)
+	{
+		//cprintf("dynamic allocator\n");
+		if(new_size <= DYN_ALLOC_MAX_BLOCK_SIZE)
+		{
+			return realloc_block_FF(virtual_address, new_size);
+		}
+		else
+		{
+			void* ret = kmalloc(new_size);
+			if(ret != NULL)
+			{
+				free_block(virtual_address);
+				return ret;
+			}
+			else{
+				return virtual_address;
+			}
+		}
+	}
+	else if(virtual_address == NULL && new_size == 0)
 	{
 		return NULL;
 	}
 	else if(virtual_address == NULL )
 	{
-		void * ret = kmalloc(new_size);
-		if(ret != NULL)  //allocation succeeded
-		{
-			return ret;
-		}
-		else {  // allocation failed
-			return (void*)-1;
-		}
+		return kmalloc(new_size);
 	}
 	else if( new_size == 0 )
 	{
