@@ -111,6 +111,7 @@ struct Env {
 
 	uint32 dynamic_allocate_USER_heap_start;
 	uint32 dynamic_allocate_USER_heap_end;
+	uint32 dynamic_allocate_USER_heap_break;
 
 	//==================================================================================
 
