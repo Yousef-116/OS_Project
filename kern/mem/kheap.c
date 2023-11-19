@@ -9,6 +9,11 @@ const int manga_size = (KERNEL_HEAP_MAX - KERNEL_HEAP_START)/PAGE_SIZE;
 int manga_strt;
 int manga[(KERNEL_HEAP_MAX - KERNEL_HEAP_START)/PAGE_SIZE + 1] = {};
 
+bool compare_perm(int perm0, int perm1, int perm2)
+{
+	return (perm0 & perm1) && (perm0 & perm2);
+}
+
 int va_to_index(void* va)
 {
 	return ((uint32)va  - KERNEL_HEAP_START) / PAGE_SIZE;
@@ -188,6 +193,9 @@ void* kmalloc(unsigned int size)
 	//kpanic_into_prompt("kmalloc() is not implemented yet...!!");
 
 	//cprintf("size = %u\n", size);
+
+	if(compare_perm(0x011, 0x001, 0x010))
+		cprintf("Yesssss\n");
 	if(isKHeapPlacementStrategyFIRSTFIT())
 	{
 		if(size <= DYN_ALLOC_MAX_BLOCK_SIZE)
