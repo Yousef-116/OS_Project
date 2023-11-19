@@ -400,7 +400,7 @@ void *krealloc(void *virtual_address, uint32 new_size)
 //	return NULL;
 //	panic("krealloc() is not implemented yet...!!");
 
-	if(virtual_address < brk)
+	if((uint32)virtual_address < brk)
 	{
 		//cprintf("dynamic allocator\n");
 		if(new_size <= DYN_ALLOC_MAX_BLOCK_SIZE)

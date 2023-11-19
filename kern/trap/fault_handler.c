@@ -88,7 +88,53 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		//cprintf("PLACEMENT=========================WS Size = %d\n", wsSize );
 		//TODO: [PROJECT'23.MS2 - #15] [3] PAGE FAULT HANDLER - Placement
 		// Write your code here, remove the panic and write your code
-		panic("page_fault_handler().PLACEMENT is not implemented yet...!!");
+		//panic("page_fault_handler().PLACEMENT is not implemented yet...!!");
+
+//		fault_va = ROUNDDOWN(fault_va, PAGE_SIZE);
+//		struct FrameInfo * targetPageFrame;
+//		allocate_frame(&targetPageFrame);
+//		map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_PRESENT | PERM_WRITEABLE);
+//		int ret = pf_read_env_page(curenv, (void*)fault_va);
+//		if(ret == E_PAGE_NOT_EXIST_IN_PF)
+//		{
+//			if((fault_va > USTACKBOTTOM && fault_va < USTACKTOP) || (fault_va > USER_HEAP_START && fault_va < USER_HEAP_MAX))
+//			{
+//				pf_add_empty_env_page(curenv, fault_va, 0);
+//			}
+//			else sched_kill_env(curenv->env_id);
+//		}
+//
+//		struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
+//		cprintf("SIZE BEFORE: %d \n", LIST_SIZE(&(curenv->page_WS_list)));
+//		LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
+//		cprintf("SIZE AFTER: %d \n", LIST_SIZE(&(curenv->page_WS_list)));
+//		cprintf("MAX SIZE: %d \n", curenv->page_WS_max_size);
+//		if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
+//		{ // full
+//			//curenv->page_last_WS_element++;
+//		}
+//		else curenv->page_last_WS_element = NULL;
+//		env_page_ws_print(curenv);
+
+		bool alloc = 1;
+		int ret = pf_read_env_page(curenv, (void*)fault_va);
+		if(ret == E_PAGE_NOT_EXIST_IN_PF)
+		{
+			if(!(fault_va > USTACKBOTTOM && fault_va < USTACKTOP) && !(fault_va > USER_HEAP_START && fault_va < USER_HEAP_MAX))
+			{
+				alloc = 0;
+				sched_kill_env(curenv->env_id);
+			}
+		}
+		if(alloc == 1)
+		{
+			struct FrameInfo * targetPageFrame;
+			allocate_frame(&targetPageFrame);
+			map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_PRESENT | PERM_WRITEABLE);
+			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
+			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
+		}
+
 
 		//refer to the project presentation and documentation for details
 	}

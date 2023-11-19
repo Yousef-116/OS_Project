@@ -412,7 +412,7 @@ struct FrameInfo * get_frame_info(uint32 *ptr_page_directory, uint32 virtual_add
 {
 	// Fill this function in
 	//cprintf(".gfi .1\n %x, %x, %x, \n", ptr_page_directory, virtual_address, ptr_page_table);
-	uint32 ret =  get_page_table(ptr_page_directory, virtual_address, ptr_page_table) ;
+	uint32 ret =  get_page_table(ptr_page_directory, virtual_address, ptr_page_table);
 	//cprintf(".gfi .15\n");
 	if((*ptr_page_table) != 0)
 	{
