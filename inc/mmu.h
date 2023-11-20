@@ -59,6 +59,7 @@
 // Page table/directory entry flags.
 #define PERM_PRESENT	0x001	// Present
 #define PERM_WRITEABLE	0x002	// Writeable
+#define MARKED	0x200	// 	MARKED
 #define PERM_USER		0x004	// User
 #define PTE_PWT		0x008	// Write-Through
 #define PTE_PCD		0x010	// Cache-Disable

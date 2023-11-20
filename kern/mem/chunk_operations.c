@@ -10,7 +10,6 @@
 #include "kheap.h"
 #include "memory_manager.h"
 #include <inc/queue.h>
-#include <kern/tests/utilities.h>
 
 //extern void inctst();
 
@@ -115,17 +114,43 @@ uint32 calculate_required_frames(uint32* page_directory, uint32 sva, uint32 size
 //=====================================
 // 1) ALLOCATE USER MEMORY:
 //=====================================
+const int umanga_size = (USER_HEAP_MAX - USER_HEAP_START) / PAGE_SIZE;
+int umanga_strt;
+int umanga[(USER_HEAP_MAX-USER_HEAP_START)/PAGE_SIZE] = {};
+
+int Uva_to_index(void* va) {
+	return ((uint32) va - USER_HEAP_START) / PAGE_SIZE;
+}
+
+void* index_to_Uva(int index) {
+	return (void *) (index * PAGE_SIZE + USER_HEAP_START);
+}
+
 void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
 	/*=============================================================================*/
 	//TODO: [PROJECT'23.MS2 - #10] [2] USER HEAP - allocate_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */
-	inctst();
-	return;
+	//inctst();
+	//return;
 	/*=============================================================================*/
 
 	// Write your code here, remove the panic and write your code
-	panic("allocate_user_mem() is not implemented yet...!!");
+	//panic("allocate_user_mem() is not implemented yet...!!");
+
+	int num_of_req_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
+	int ret;
+	uint32* ptr_page_table;
+	for(uint32 va = virtual_address; num_of_req_pages < 0; --num_of_req_pages, va += PAGE_SIZE)
+	{
+		ptr_page_table = NULL;
+		ret = get_page_table(e->env_page_directory, virtual_address, &ptr_page_table);
+
+		if(ptr_page_table == NULL)
+			create_page_table(e->env_page_directory, va);
+
+		pt_set_page_permissions(e->env_page_directory, va, MARKED, 0x000);
+	}
 }
 
 //=====================================

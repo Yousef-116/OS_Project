@@ -452,19 +452,44 @@ void* sys_sbrk(int increment) {
 	struct Env* env = curenv; //the current running Environment to adjust its break limit
 
 	uint32 old_brk = env->dynamic_allocate_USER_heap_break;
+	uint32 new_brk = old_brk;
 	if (increment > 0) {
 
-		if (env->dynamic_allocate_USER_heap_break % PAGE_SIZE == 1) {
-			uint32 temp_brk = env->dynamic_allocate_USER_heap_break;
-			temp_brk = ROUNDUP(temp_brk, PAGE_SIZE);
-
-			increment -= temp_brk - env->dynamic_allocate_USER_heap_break;
-
-			if (increment < 0)
-				increment = 0;
-			env->dynamic_allocate_USER_heap_break = ROUNDUP(
-					env->dynamic_allocate_USER_heap_break, PAGE_SIZE);
+		new_brk += increment;
+		int diff = new_brk - env->dynamic_allocate_USER_heap_start;
+		if (diff % PAGE_SIZE != 0)
+		{
+			new_brk = ROUNDUP(diff, PAGE_SIZE) + env->dynamic_allocate_USER_heap_start;
 		}
+
+		if(new_brk > env->dynamic_allocate_USER_heap_hLimit)
+			return (void *)-1;
+		else
+			env->dynamic_allocate_USER_heap_break = new_brk;
+
+		for (uint32 i = old_brk; i < env->dynamic_allocate_USER_heap_break; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
+		{
+			struct FrameInfo *ptr_frame_info = NULL;
+
+			int ret = allocate_frame(&ptr_frame_info);
+			if (ret == E_NO_MEM)
+				panic("\nERROR_2 - cannot allocate frame, no memory\n");
+
+			ret = map_frame(ptr_page_directory, ptr_frame_info, i, PERM_WRITEABLE);
+			if (ret == E_NO_MEM) {
+				free_frame(ptr_frame_info);
+				panic("\nERROR_3 - cannot map to frame, no memory\n");
+			}
+
+			ptr_frame_info->va = i;
+		}
+
+		//cprintf("new break = %x\n", env->dynamic_allocate_USER_heap_break);
+
+		return (void *)old_brk;
+
+		//=============================================================================================
+
 		increment = ROUNDUP(increment, PAGE_SIZE);
 
 		if (env->dynamic_allocate_USER_heap_break + increment

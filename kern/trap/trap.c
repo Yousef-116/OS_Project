@@ -379,7 +379,7 @@ void fault_handler(struct Trapframe *tf)
 			//(e.g. pointing to unmarked user heap page, kernel or wrong access rights),
 			//your code is here
 
-			cprintf("\nIn check for invalid pointers\n");
+			//cprintf("\nIn check for invalid pointers\n");
 
 			// pointing to kernel
 			if (fault_va >= USER_LIMIT){
@@ -395,10 +395,16 @@ void fault_handler(struct Trapframe *tf)
 				sched_kill_env(curenv->env_id);
 			}
 
-			// Exist with read-only permissions
 			unsigned int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
+//			// Unmarked
+//			if (!(perms & MARKED)){
+//				cprintf("\nFaulted VA failed due to marked permission\n") ;
+//				sched_kill_env(curenv->env_id);
+//			}
+
+			// Exist with read-only permissions
 			if ((perms & PERM_USER)){
-				cprintf("\nFaulted VA failed due to permissions\n") ;
+				cprintf("\nFaulted VA failed due to read write permission\n") ;
 				sched_kill_env(curenv->env_id);
 			}
 
@@ -408,7 +414,7 @@ void fault_handler(struct Trapframe *tf)
 //				sched_kill_env(curenv->env_id);
 //			}
 
-			cprintf("\nOut of check for invalid pointers\n");
+			//cprintf("\nOut of check for invalid pointers\n");
 
 			/*============================================================================================*/
 		}

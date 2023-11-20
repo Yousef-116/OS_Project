@@ -116,14 +116,13 @@ void* sbrk(int increment) {
 		}
 		increment = ROUNDUP(increment, PAGE_SIZE);
 
-		if (brk + increment
-				>= hLimit)
+		if (brk + increment >= hLimit)
 			panic("\nERROR_1 - brk + increment >= hLimit\n");
 
 		brk += increment; // brk += PAGE_SIZE * n
 
 				for (uint32 i = old_brk; i < brk; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
-						{
+				{
 					struct FrameInfo *ptr_frame_info = NULL;
 
 					int ret = allocate_frame(&ptr_frame_info);
@@ -140,13 +139,14 @@ void* sbrk(int increment) {
 					ptr_frame_info->va = i;
 				}
 
-				struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
-				meta_data->size = increment;
-				meta_data->is_free = 1;
-				LIST_INSERT_TAIL(&MemoryList, meta_data);
+//				struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
+//				meta_data->size = increment;
+//				meta_data->is_free = 1;
+//				LIST_INSERT_TAIL(&MemoryList, meta_data);
 
 		return (void *) old_brk;
-	} else if (increment < 0) {
+	}
+	else if (increment < 0) {
 		//panic("\nERROR_4 - increment < 0 not implemented yet\n");
 
 		//increment = ROUNDDOWN(increment, PAGE_SIZE);
@@ -254,7 +254,7 @@ void* kmalloc(unsigned int size) {
 			return NULL;
 		}
 
-		manga[index] = num_of_req_pages;
+		//manga[index] = num_of_req_pages;
 		//_1stVa = index*PAGE_SIZE + start;
 		_1stVa = index_to_Kva(index);
 		numOfFreePages -= num_of_req_pages;

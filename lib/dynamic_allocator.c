@@ -164,11 +164,13 @@ void *alloc_block_FF(uint32 size)
 
     if (!is_initialized)
     {
+    	cprintf("block allocator initializing\n");
 		uint32 required_size = size + sizeOfMetaData();
 		uint32 da_start = (uint32)sbrk(required_size);
 		//get new break since it's page aligned! thus, the size can be more than the required one
 		uint32 da_break = (uint32)sbrk(0);
 		initialize_dynamic_allocator(da_start, da_break - da_start);
+    	cprintf("block allocator initialized\n");
     }
 
 
@@ -192,8 +194,14 @@ void *alloc_block_FF(uint32 size)
     if(ret != (void*)-1)
     {
     	//cprintf("\nsbrk called\n");
-    	free_block(ret + sizeOfMetaData()); //to merge
     	//cprintf(" ...... ........... List last size = %d \n" ,LIST_LAST(&MemoryList)->size);
+
+		struct BlockMetaData *meta_data = (struct BlockMetaData *) (ret);
+		meta_data->size = sbrk(0) - ret;
+		meta_data->is_free = 1;
+		LIST_INSERT_TAIL(&MemoryList, meta_data);
+
+    	free_block(ret + sizeOfMetaData()); //to merge
 
     	currBlock = LIST_LAST(&MemoryList);
     	currBlock->is_free = 0;
