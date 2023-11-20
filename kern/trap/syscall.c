@@ -469,7 +469,7 @@ void* sys_sbrk(int increment) {
 
 		if (env->dynamic_allocate_USER_heap_break + increment
 				>= env->dynamic_allocate_USER_heap_end)
-			panic("\nERROR_1 - brk + increment >= hLimit\n");
+			return (void *)-1;
 
 		env->dynamic_allocate_USER_heap_break += increment; // brk += PAGE_SIZE * n
 
@@ -503,7 +503,7 @@ void* sys_sbrk(int increment) {
 		//increment = ROUNDDOWN(increment, PAGE_SIZE);
 
 		if (env->dynamic_allocate_USER_heap_break + increment <= env->dynamic_allocate_USER_heap_start)
-			panic("\nERROR_5 - brk + increment <= start\n");
+			return (void *)-1;
 
 		env->dynamic_allocate_USER_heap_break += increment;
 
@@ -514,7 +514,7 @@ void* sys_sbrk(int increment) {
 			struct FrameInfo *ptr_frame_info = to_frame_info(
 					env->dynamic_allocate_USER_heap_break);
 			if (ptr_frame_info == NULL)
-				panic("\nERROR_6 - cannot find frame to free\n");
+				return (void *)-1;
 
 			unmap_frame(ptr_page_directory,
 					env->dynamic_allocate_USER_heap_break);
@@ -543,7 +543,7 @@ void* sys_sbrk(int increment) {
 //		meta_data->size = env->dynamic_allocate_USER_heap_break
 //				- (uint32) meta_data; // last metaData under new brk - size equals space in between
 
-		return (void *) old_brk;
+		return (void *) env->dynamic_allocate_USER_heap_break;
 
 	} else // increment == 0
 	{

@@ -192,7 +192,7 @@ void* sbrk(int increment) {
 		meta_data->size = brk
 				- (uint32) meta_data; // last metaData under new brk - size equals space in between
 
-		return (void *) old_brk;
+		return (void *) brk;
 
 	} else // increment == 0
 	{
