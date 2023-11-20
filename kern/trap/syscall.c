@@ -468,7 +468,7 @@ void* sys_sbrk(int increment) {
 		increment = ROUNDUP(increment, PAGE_SIZE);
 
 		if (env->dynamic_allocate_USER_heap_break + increment
-				>= env->dynamic_allocate_USER_heap_end)
+				>= env->dynamic_allocate_USER_heap_hLimit)
 			return (void *)-1;
 
 		env->dynamic_allocate_USER_heap_break += increment; // brk += PAGE_SIZE * n
@@ -552,8 +552,8 @@ void* sys_sbrk(int increment) {
 
 }
 
-uint32 sys_getHardLimit() {
-	return curenv->dynamic_allocate_USER_heap_end;
+uint32 Usys_getHardLimit() {
+	return curenv->dynamic_allocate_USER_heap_hLimit;
 }
 /**************************************************************************/
 /************************* SYSTEM CALLS HANDLER ***************************/
@@ -569,7 +569,7 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4,
 	//TODO: [PROJECT'23.MS1 - #4] [2] SYSTEM CALLS - Add suitable code her
 
 	case SYS_get_hard_limit:
-		return (uint32) sys_getHardLimit();
+		return (uint32) Usys_getHardLimit();
 		break;
 	case SYS_sbrk:
 		return (uint32) sys_sbrk((int) a1);

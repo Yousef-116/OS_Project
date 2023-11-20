@@ -33,6 +33,31 @@ void* sbrk(int increment)
 //=================================
 // [2] ALLOCATE SPACE IN USER HEAP:
 //=================================
+uint32 UnumOfFreePages;
+const int umanga_size = (USER_HEAP_MAX - USER_HEAP_START) / PAGE_SIZE;
+int umanga_strt;
+int umanga[(USER_HEAP_MAX-USER_HEAP_START)/PAGE_SIZE] = {};
+
+int Uva_to_index(void* va) {
+	return ((uint32) va - USER_HEAP_START) / PAGE_SIZE;
+}
+
+void* index_to_Uva(int index) {
+	return (void *) (index * PAGE_SIZE + USER_HEAP_START);
+}
+
+int isIntialized = 0;
+void init_uheap(int h)
+{
+	isIntialized = 1;
+	umanga_strt = (h + PAGE_SIZE - USER_HEAP_START) / PAGE_SIZE;
+	umanga[umanga_strt] = -(umanga_size - umanga_strt);
+	umanga[umanga_size - 1] = umanga[umanga_strt];  // at the end of Brothers
+	UnumOfFreePages = (USER_HEAP_MAX - h - PAGE_SIZE) / PAGE_SIZE;
+}
+
+struct Env * e;
+
 void* malloc(uint32 size)
 {
 	//==============================================================
@@ -42,11 +67,74 @@ void* malloc(uint32 size)
 	//==============================================================
 	//TODO: [PROJECT'23.MS2 - #09] [2] USER HEAP - malloc() [User Side]
 	// Write your code here, remove the panic and write your code
-	panic("malloc() is not implemented yet...!!");
-	return NULL;
+	//panic("malloc() is not implemented yet...!!");
+	//return NULL;
 	//Use sys_isUHeapPlacementStrategyFIRSTFIT() and	sys_isUHeapPlacementStrategyBESTFIT()
 	//to check the current strategy
 
+//	if(!isIntialized)
+//	{
+//		init_uheap();
+//	}
+
+	if(sys_isUHeapPlacementStrategyFIRSTFIT())
+	{
+		if (size <= DYN_ALLOC_MAX_BLOCK_SIZE) {
+			//cprintf("dynamic allocator\n");
+			return alloc_block_FF(size);
+		}
+
+		uint32 _size = size;
+		int num_of_req_pages = ROUNDUP(_size, PAGE_SIZE) / PAGE_SIZE;
+		if (num_of_req_pages > UnumOfFreePages) {
+			//cprintf("not enought pages: %d < %d\n",numOfFreePages, num_of_req_pages);
+			return NULL;
+		}
+
+		uint32 *ptr_page_table = NULL;
+		void* _1stVa;
+		int index = -1;
+		for (int i = umanga_strt; i < umanga_size;) {
+			if (umanga[i] < 0) {
+				if (-umanga[i] == num_of_req_pages) {
+					umanga[i - umanga[i] - 1] = 0;  // at the end of Brothers
+					umanga[i] = num_of_req_pages;
+					index = i;
+					break;
+				} else if (-umanga[i] > num_of_req_pages) {
+					umanga[i + num_of_req_pages] = umanga[i] + num_of_req_pages;
+					umanga[i + num_of_req_pages - umanga[i + num_of_req_pages] - 1] =
+							umanga[i + num_of_req_pages];
+
+					umanga[i] = num_of_req_pages;
+
+					index = i;
+					break;
+				} else {
+					i -= umanga[i];
+				}
+			} else {
+				i += umanga[i];
+			}
+		}
+
+		if (index == -1) {
+			return NULL;
+		}
+
+		umanga[index] = num_of_req_pages;
+		//_1stVa = index*PAGE_SIZE + start;
+		_1stVa = index_to_Uva(index);
+		UnumOfFreePages -= num_of_req_pages;
+		//myAlloc_pages(_1stVa, num_of_req_pages);
+		//sys_allocate_user_mem((uint32)_1stVa, size);
+		return _1stVa;
+	}
+	else if(sys_isUHeapPlacementStrategyBESTFIT())
+	{
+		panic("Not implemented yet");
+	}
+	return NULL;
 }
 
 //=================================

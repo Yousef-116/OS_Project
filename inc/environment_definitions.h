@@ -110,7 +110,7 @@ struct Env {
 	//TODO: [PROJECT'23.MS2 - #07] [2] USER HEAP - initialize of Env: add suitable code here
 
 	uint32 dynamic_allocate_USER_heap_start;
-	uint32 dynamic_allocate_USER_heap_end;
+	uint32 dynamic_allocate_USER_heap_hLimit;
 	uint32 dynamic_allocate_USER_heap_break;
 
 	//==================================================================================

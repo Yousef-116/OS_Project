@@ -784,8 +784,9 @@ void initialize_uheap_dynamic_allocator(struct Env* e, uint32 daStart, uint32 da
 
 
     e->dynamic_allocate_USER_heap_start=daStart;
-    e->dynamic_allocate_USER_heap_end=daLimit;
+    e->dynamic_allocate_USER_heap_hLimit=daLimit;
     e->dynamic_allocate_USER_heap_break=daStart;
+    //init_uheap(daLimit);
 
     //uint32 daSize = daLimit - daStart;
 
