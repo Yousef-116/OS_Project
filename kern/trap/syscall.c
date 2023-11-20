@@ -17,7 +17,7 @@
 #include <kern/tests/utilities.h>
 #include <kern/tests/test_working_set.h>
 
-extern uint8 bypassInstrLength ;
+extern uint8 bypassInstrLength;
 
 /*******************************/
 /* STRING I/O SYSTEM CALLS */
@@ -26,8 +26,7 @@ extern uint8 bypassInstrLength ;
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
 // Destroys the environment on memory errors.
-static void sys_cputs(const char *s, uint32 len, uint8 printProgName)
-{
+static void sys_cputs(const char *s, uint32 len, uint8 printProgName) {
 	// Check that the user has permission to read memory [s, s+len).
 	// Destroy the environment if not.
 
@@ -35,25 +34,20 @@ static void sys_cputs(const char *s, uint32 len, uint8 printProgName)
 
 	// Print the string supplied by the user.
 	if (printProgName)
-		cprintf("[%s %d] ",curenv->prog_name, curenv->env_id);
-	cprintf("%.*s",len, s);
+		cprintf("[%s %d] ", curenv->prog_name, curenv->env_id);
+	cprintf("%.*s", len, s);
 	//cprintf("%.*s", len, s);
 }
 
-
 // Print a char to the system console.
-static void sys_cputc(const char c)
-{
+static void sys_cputc(const char c) {
 	// Print the char supplied by the user.
-	cprintf("%c",c);
+	cprintf("%c", c);
 }
-
 
 // Read a character from the system console.
 // Returns the character.
-static int
-sys_cgetc(void)
-{
+static int sys_cgetc(void) {
 	int c;
 
 	// The cons_getc() primitive doesn't wait for a character,
@@ -68,7 +62,6 @@ sys_cgetc(void)
 
 	return c;
 }
-
 
 /*******************************/
 /* MEMORY SYSTEM CALLS */
@@ -89,8 +82,7 @@ sys_cgetc(void)
 //	E_INVAL if perm is inappropriate (see above).
 //	E_NO_MEM if there's no memory to allocate the new page,
 //		or to allocate any necessary page tables.
-static int __sys_allocate_page(void *va, int perm)
-{
+static int __sys_allocate_page(void *va, int perm) {
 	// Hint: This function is a wrapper around page_alloc() and
 	//   page_insert() from kern/pmap.c.
 	//   Most of the new code you write should be to check the
@@ -104,29 +96,29 @@ static int __sys_allocate_page(void *va, int perm)
 	//if ((r = envid2env(envid, &e, 1)) < 0)
 	//return r;
 
-	struct FrameInfo *ptr_frame_info ;
-	r = allocate_frame(&ptr_frame_info) ;
+	struct FrameInfo *ptr_frame_info;
+	r = allocate_frame(&ptr_frame_info);
 	if (r == E_NO_MEM)
-		return r ;
+		return r;
 
 	//check virtual address to be paged_aligned and < USER_TOP
-	if ((uint32)va >= USER_TOP || (uint32)va % PAGE_SIZE != 0)
+	if ((uint32) va >= USER_TOP || (uint32) va % PAGE_SIZE != 0)
 		return E_INVAL;
 
 	//check permissions to be appropriate
 	if ((perm & (~PERM_AVAILABLE & ~PERM_WRITEABLE)) != (PERM_USER))
 		return E_INVAL;
 
-
-	uint32 physical_address = to_physical_address(ptr_frame_info) ;
+	uint32 physical_address = to_physical_address(ptr_frame_info);
 
 #if USE_KHEAP
 	{
 		//FIX: we should implement a better solution for this, but for now
 		//		we are using an unsed VA in the invalid area of kernel at 0xef800000 (the current USER_LIMIT)
 		//		to do temp initialization of a frame.
-		map_frame(e->env_page_directory, ptr_frame_info, USER_LIMIT, PERM_WRITEABLE);
-		memset((void*)USER_LIMIT, 0, PAGE_SIZE);
+		map_frame(e->env_page_directory, ptr_frame_info, USER_LIMIT,
+		PERM_WRITEABLE);
+		memset((void*) USER_LIMIT, 0, PAGE_SIZE);
 
 		// Temporarily increase the references to prevent unmap_frame from removing the frame
 		// we just got from allocate_frame, we will use it for the new page
@@ -141,13 +133,12 @@ static int __sys_allocate_page(void *va, int perm)
 		memset(STATIC_KERNEL_VIRTUAL_ADDRESS(physical_address), 0, PAGE_SIZE);
 	}
 #endif
-	r = map_frame(e->env_page_directory, ptr_frame_info, (uint32)va, perm) ;
-	if (r == E_NO_MEM)
-	{
+	r = map_frame(e->env_page_directory, ptr_frame_info, (uint32) va, perm);
+	if (r == E_NO_MEM) {
 		decrement_references(ptr_frame_info);
 		return r;
 	}
-	return 0 ;
+	return 0;
 }
 
 // Map the page of memory at 'srcva' in srcenvid's address space
@@ -167,8 +158,8 @@ static int __sys_allocate_page(void *va, int perm)
 //		address space.
 //	-E_NO_MEM if there's no memory to allocate the new page,
 //		or to allocate any necessary page tables.
-static int __sys_map_frame(int32 srcenvid, void *srcva, int32 dstenvid, void *dstva, int perm)
-{
+static int __sys_map_frame(int32 srcenvid, void *srcva, int32 dstenvid,
+		void *dstva, int perm) {
 	// Hint: This function is a wrapper around page_lookup() and
 	//   page_insert() from kern/pmap.c.
 	//   Again, most of the new code you write should be to check the
@@ -189,8 +180,7 @@ static int __sys_map_frame(int32 srcenvid, void *srcva, int32 dstenvid, void *ds
 //	-E_BAD_ENV if environment envid doesn't currently exist,
 //		or the caller doesn't have permission to change envid.
 //	-E_INVAL if va >= UTOP, or va is not page-aligned.
-static int __sys_unmap_frame(int32 envid, void *va)
-{
+static int __sys_unmap_frame(int32 envid, void *va) {
 	// Hint: This function is a wrapper around page_remove().
 
 	// LAB 4: Your code here.
@@ -198,168 +188,143 @@ static int __sys_unmap_frame(int32 envid, void *va)
 	return 0;
 }
 
-uint32 sys_calculate_required_frames(uint32 start_virtual_address, uint32 size)
-{
-	return calculate_required_frames(curenv->env_page_directory, start_virtual_address, size);
+uint32 sys_calculate_required_frames(uint32 start_virtual_address, uint32 size) {
+	return calculate_required_frames(curenv->env_page_directory,
+			start_virtual_address, size);
 }
 
-uint32 sys_calculate_free_frames()
-{
+uint32 sys_calculate_free_frames() {
 	struct freeFramesCounters counters = calculate_available_frames();
 	//	cprintf("Free Frames = %d : Buffered = %d, Not Buffered = %d\n", counters.freeBuffered + counters.freeNotBuffered, counters.freeBuffered ,counters.freeNotBuffered);
 	return counters.freeBuffered + counters.freeNotBuffered;
 }
-uint32 sys_calculate_modified_frames()
-{
+uint32 sys_calculate_modified_frames() {
 	struct freeFramesCounters counters = calculate_available_frames();
 	//	cprintf("================ Modified Frames = %d\n", counters.modified) ;
 	return counters.modified;
 }
 
-uint32 sys_calculate_notmod_frames()
-{
+uint32 sys_calculate_notmod_frames() {
 	struct freeFramesCounters counters = calculate_available_frames();
 	//	cprintf("================ Not Modified Frames = %d\n", counters.freeBuffered) ;
 	return counters.freeBuffered;
 }
 
-int sys_calculate_pages_tobe_removed_ready_exit(uint32 WS_or_MEMORY_flag)
-{
+int sys_calculate_pages_tobe_removed_ready_exit(uint32 WS_or_MEMORY_flag) {
 	return calc_no_pages_tobe_removed_from_ready_exit_queues(WS_or_MEMORY_flag);
 }
 
-void sys_scarce_memory(void)
-{
+void sys_scarce_memory(void) {
 	scarce_memory();
 }
 
-void sys_clearFFL()
-{
-	int size = LIST_SIZE(&free_frame_list) ;
-	int i = 0 ;
-	struct FrameInfo* ptr_tmp_FI ;
-	for (; i < size ; i++)
-	{
-		allocate_frame(&ptr_tmp_FI) ;
+void sys_clearFFL() {
+	int size = LIST_SIZE(&free_frame_list);
+	int i = 0;
+	struct FrameInfo* ptr_tmp_FI;
+	for (; i < size; i++) {
+		allocate_frame(&ptr_tmp_FI);
 	}
 }
 
 /*******************************/
 /* PAGE FILE SYSTEM CALLS */
 /*******************************/
-int sys_pf_calculate_allocated_pages(void)
-{
+int sys_pf_calculate_allocated_pages(void) {
 	return pf_calculate_allocated_pages(curenv);
 }
 
 /*******************************/
 /* USER HEAP SYSTEM CALLS */
 /*******************************/
-void sys_free_user_mem(uint32 virtual_address, uint32 size)
-{
-	if(isBufferingEnabled())
-	{
+void sys_free_user_mem(uint32 virtual_address, uint32 size) {
+	if (isBufferingEnabled()) {
 		__free_user_mem_with_buffering(curenv, virtual_address, size);
-	}
-	else
-	{
+	} else {
 		free_user_mem(curenv, virtual_address, size);
 	}
 	return;
 }
 
-void sys_allocate_user_mem(uint32 virtual_address, uint32 size)
-{
+void sys_allocate_user_mem(uint32 virtual_address, uint32 size) {
 	allocate_user_mem(curenv, virtual_address, size);
 	return;
 }
 
-void sys_allocate_chunk(uint32 virtual_address, uint32 size, uint32 perms)
-{
+void sys_allocate_chunk(uint32 virtual_address, uint32 size, uint32 perms) {
 	allocate_chunk(curenv->env_page_directory, virtual_address, size, perms);
 	return;
 }
 
 //2014
-void sys_move_user_mem(uint32 src_virtual_address, uint32 dst_virtual_address, uint32 size)
-{
+void sys_move_user_mem(uint32 src_virtual_address, uint32 dst_virtual_address,
+		uint32 size) {
 	move_user_mem(curenv, src_virtual_address, dst_virtual_address, size);
 	return;
 }
 
 //2015
-uint32 sys_get_heap_strategy()
-{
-	return _UHeapPlacementStrategy ;
+uint32 sys_get_heap_strategy() {
+	return _UHeapPlacementStrategy;
 }
-void sys_set_uheap_strategy(uint32 heapStrategy)
-{
+void sys_set_uheap_strategy(uint32 heapStrategy) {
 	_UHeapPlacementStrategy = heapStrategy;
 }
 /*******************************/
 /* INTERRUPTS SYSTEM CALLS */
 /*******************************/
 //NEW!! 2012...
-void sys_disable_interrupt()
-{
-	curenv->env_tf.tf_eflags &= ~FL_IF ;
+void sys_disable_interrupt() {
+	curenv->env_tf.tf_eflags &= ~FL_IF;
 }
-void sys_enable_interrupt()
-{
-	curenv->env_tf.tf_eflags |= FL_IF ;
+void sys_enable_interrupt() {
+	curenv->env_tf.tf_eflags |= FL_IF;
 }
 
 /*******************************/
 /* SEMAPHORES SYSTEM CALLS */
 /*******************************/
-int sys_createSemaphore(char* semaphoreName, uint32 initialValue)
-{
+int sys_createSemaphore(char* semaphoreName, uint32 initialValue) {
 	return createSemaphore(curenv->env_id, semaphoreName, initialValue);
 }
 
-void sys_waitSemaphore(int32 ownerEnvID, char* semaphoreName)
-{
+void sys_waitSemaphore(int32 ownerEnvID, char* semaphoreName) {
 	waitSemaphore(ownerEnvID, semaphoreName);
 }
 
-void sys_signalSemaphore(int32 ownerEnvID, char* semaphoreName)
-{
+void sys_signalSemaphore(int32 ownerEnvID, char* semaphoreName) {
 	signalSemaphore(ownerEnvID, semaphoreName);
 }
 
-int sys_getSemaphoreValue(int32 ownerEnvID, char* semaphoreName)
-{
+int sys_getSemaphoreValue(int32 ownerEnvID, char* semaphoreName) {
 	int semID = get_semaphore_object_ID(ownerEnvID, semaphoreName);
-	assert(semID >= 0 && semID < MAX_SEMAPHORES) ;
+	assert(semID >= 0 && semID < MAX_SEMAPHORES);
 
-	return semaphores[semID].value ;
+	return semaphores[semID].value;
 }
 
 /*******************************/
 /* SHARED MEMORY SYSTEM CALLS */
 /*******************************/
-int sys_createSharedObject(char* shareName, uint32 size, uint8 isWritable, void* virtual_address)
-{
-	return createSharedObject(curenv->env_id, shareName, size, isWritable, virtual_address);
+int sys_createSharedObject(char* shareName, uint32 size, uint8 isWritable,
+		void* virtual_address) {
+	return createSharedObject(curenv->env_id, shareName, size, isWritable,
+			virtual_address);
 }
 
-int sys_getSizeOfSharedObject(int32 ownerID, char* shareName)
-{
+int sys_getSizeOfSharedObject(int32 ownerID, char* shareName) {
 	return getSizeOfSharedObject(ownerID, shareName);
 }
 
-int sys_getSharedObject(int32 ownerID, char* shareName, void* virtual_address)
-{
+int sys_getSharedObject(int32 ownerID, char* shareName, void* virtual_address) {
 	return getSharedObject(ownerID, shareName, virtual_address);
 }
 
-int sys_freeSharedObject(int32 sharedObjectID, void *startVA)
-{
+int sys_freeSharedObject(int32 sharedObjectID, void *startVA) {
 	return freeSharedObject(sharedObjectID, startVA);
 }
 
-uint32 sys_getMaxShares()
-{
+uint32 sys_getMaxShares() {
 	return MAX_SHARES;
 }
 
@@ -368,21 +333,18 @@ uint32 sys_getMaxShares()
 /*********************************/
 // Returns the current environment's envid.
 //2017
-static int32 sys_getenvid(void)
-{
+static int32 sys_getenvid(void) {
 	return curenv->env_id;
 }
 
 //2017
-static int32 sys_getenvindex(void)
-{
+static int32 sys_getenvindex(void) {
 	//return curenv->env_id;
-	return (curenv - envs) ;
+	return (curenv - envs);
 }
 
 //2017
-static int32 sys_getparentenvid(void)
-{
+static int32 sys_getparentenvid(void) {
 	return curenv->env_parent_id;
 }
 
@@ -392,25 +354,18 @@ static int32 sys_getparentenvid(void)
 // Returns 0 on success, < 0 on error.  Errors are:
 //	-E_BAD_ENV if environment envid doesn't currently exist,
 //		or the caller doesn't have permission to change envid.
-static int sys_destroy_env(int32 envid)
-{
+static int sys_destroy_env(int32 envid) {
 	int r;
 	struct Env *e;
-	if (envid == 0)
-	{
-		e = curenv ;
-	}
-	else if ((r = envid2env(envid, &e, 0)) < 0)
-	{
+	if (envid == 0) {
+		e = curenv;
+	} else if ((r = envid2env(envid, &e, 0)) < 0) {
 		return r;
 	}
 
-	if (e == curenv)
-	{
+	if (e == curenv) {
 		cprintf("[%08x] exiting gracefully\n", curenv->env_id);
-	}
-	else
-	{
+	} else {
 		cprintf("[%08x] destroying %08x\n", curenv->env_id, e->env_id);
 	}
 	//2015
@@ -420,8 +375,7 @@ static int sys_destroy_env(int32 envid)
 }
 
 //Just place the current env into the EXIT queue & schedule the next one
-static void sys_exit_env()
-{
+static void sys_exit_env() {
 	//2015
 	env_exit();
 	//env_run_cmd_prmpt();
@@ -429,11 +383,12 @@ static void sys_exit_env()
 
 //New update in 2020
 //Create a new env & add it to the NEW queue
-int sys_create_env(char* programName, unsigned int page_WS_size,unsigned int LRU_second_list_size, unsigned int percent_WS_pages_to_remove)
-{
-	struct Env* env =  env_create(programName, page_WS_size, LRU_second_list_size, percent_WS_pages_to_remove);
-	if(env == NULL)
-	{
+int sys_create_env(char* programName, unsigned int page_WS_size,
+		unsigned int LRU_second_list_size,
+		unsigned int percent_WS_pages_to_remove) {
+	struct Env* env = env_create(programName, page_WS_size,
+			LRU_second_list_size, percent_WS_pages_to_remove);
+	if (env == NULL) {
 		return E_ENV_CREATION_ERROR;
 	}
 
@@ -444,45 +399,35 @@ int sys_create_env(char* programName, unsigned int page_WS_size,unsigned int LRU
 }
 
 //Place a new env into the READY queue
-void sys_run_env(int32 envId)
-{
+void sys_run_env(int32 envId) {
 	sched_run_env(envId);
 }
-
 
 //====================================
 /*******************************/
 /* ETC... SYSTEM CALLS */
 /*******************************/
 
-struct uint64 sys_get_virtual_time()
-{
+struct uint64 sys_get_virtual_time() {
 	struct uint64 t = get_virtual_time();
 	return t;
 }
 
-uint32 sys_rcr2()
-{
+uint32 sys_rcr2() {
 	return rcr2();
 }
-void sys_bypassPageFault(uint8 instrLength)
-{
+void sys_bypassPageFault(uint8 instrLength) {
 	bypassInstrLength = instrLength;
 }
-
-
-
-
 
 /**********************************/
 /* DYNAMIC ALLOCATOR SYSTEM CALLS */
 /**********************************/
 /*2024*/
-void* sys_sbrk(int increment)
-{
+void* sys_sbrk(int increment) {
 	//TODO: [PROJECT'23.MS2 - #08] [2] USER HEAP - Block Allocator - sys_sbrk() [Kernel Side]
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
-	return (void*)-1 ;
+
 	//====================================================
 
 	/*2023*/
@@ -506,40 +451,147 @@ void* sys_sbrk(int increment)
 	 */
 	struct Env* env = curenv; //the current running Environment to adjust its break limit
 
+	uint32 old_brk = env->dynamic_allocate_USER_heap_break;
+	if (increment > 0) {
+
+		if (env->dynamic_allocate_USER_heap_break % PAGE_SIZE == 1) {
+			uint32 temp_brk = env->dynamic_allocate_USER_heap_break;
+			temp_brk = ROUNDUP(temp_brk, PAGE_SIZE);
+
+			increment -= temp_brk - env->dynamic_allocate_USER_heap_break;
+
+			if (increment < 0)
+				increment = 0;
+			env->dynamic_allocate_USER_heap_break = ROUNDUP(
+					env->dynamic_allocate_USER_heap_break, PAGE_SIZE);
+		}
+		increment = ROUNDUP(increment, PAGE_SIZE);
+
+		if (env->dynamic_allocate_USER_heap_break + increment
+				>= env->dynamic_allocate_USER_heap_end)
+			panic("\nERROR_1 - brk + increment >= hLimit\n");
+
+		env->dynamic_allocate_USER_heap_break += increment; // brk += PAGE_SIZE * n
+
+//		for (uint32 i = old_brk; i < env->dynamic_allocate_USER_heap_break; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
+//				{
+//			struct FrameInfo *ptr_frame_info = NULL;
+//
+//			int ret = allocate_frame(&ptr_frame_info);
+//			if (ret == E_NO_MEM)
+//				panic("\nERROR_2 - cannot allocate frame, no memory\n");
+//
+//			ret = map_frame(ptr_page_directory, ptr_frame_info, i,
+//			PERM_WRITEABLE);
+//			if (ret == E_NO_MEM) {
+//				free_frame(ptr_frame_info);
+//				panic("\nERROR_3 - cannot map to frame, no memory\n");
+//			}
+//
+//			ptr_frame_info->va = i;
+//		}
+
+//		struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
+//		meta_data->size = increment;
+//		meta_data->is_free = 1;
+//		LIST_INSERT_TAIL(&MemoryList, meta_data);
+
+		return (void *) old_brk;
+	} else if (increment < 0) {
+		//panic("\nERROR_4 - increment < 0 not implemented yet\n");
+
+		//increment = ROUNDDOWN(increment, PAGE_SIZE);
+
+		if (env->dynamic_allocate_USER_heap_break + increment <= env->dynamic_allocate_USER_heap_start)
+			panic("\nERROR_5 - brk + increment <= start\n");
+
+		env->dynamic_allocate_USER_heap_break += increment;
+
+		uint32 temp_brk = env->dynamic_allocate_USER_heap_break;
+		temp_brk = ROUNDUP(temp_brk, PAGE_SIZE);
+
+		while (temp_brk <= old_brk) {
+			struct FrameInfo *ptr_frame_info = to_frame_info(
+					env->dynamic_allocate_USER_heap_break);
+			if (ptr_frame_info == NULL)
+				panic("\nERROR_6 - cannot find frame to free\n");
+
+			unmap_frame(ptr_page_directory,
+					env->dynamic_allocate_USER_heap_break);
+			temp_brk += PAGE_SIZE;
+		}
+//		for (uint32 i = old_brk - PAGE_SIZE;
+//				i >= env->dynamic_allocate_USER_heap_break; i -= PAGE_SIZE) // remove all frames between old_brk & new brk
+//						{
+//			struct FrameInfo *ptr_frame_info = to_frame_info(
+//					env->dynamic_allocate_USER_heap_break);
+//			if (ptr_frame_info == NULL)
+//				panic("\nERROR_6 - cannot find frame to free\n");
+//
+//			unmap_frame(ptr_page_directory,
+//					env->dynamic_allocate_USER_heap_break);
+//		}
+
+//		struct BlockMetaData *meta_data = LIST_LAST(&MemoryList);
+//		while ((uint32) meta_data
+//				>= (uint32) env->dynamic_allocate_USER_heap_break) // remove any metaData above or equals new brk
+//		{
+//			LIST_REMOVE(&MemoryList, meta_data);
+//			meta_data = LIST_LAST(&MemoryList);
+//		}
+//
+//		meta_data->size = env->dynamic_allocate_USER_heap_break
+//				- (uint32) meta_data; // last metaData under new brk - size equals space in between
+
+		return (void *) old_brk;
+
+	} else // increment == 0
+	{
+		return (void *) old_brk;
+	}
 
 }
 
+uint32 sys_getHardLimit() {
+	return curenv->dynamic_allocate_USER_heap_end;
+}
 /**************************************************************************/
 /************************* SYSTEM CALLS HANDLER ***************************/
 /**************************************************************************/
 // Dispatches to the correct kernel function, passing the arguments.
-uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uint32 a5)
-{
+uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4,
+		uint32 a5) {
 	// Call the function corresponding to the 'syscallno' parameter.
 	// Return any appropriate return value.
 
-	switch(syscallno)
-	{
+	switch (syscallno) {
 	///2023/
 	//TODO: [PROJECT'23.MS1 - #4] [2] SYSTEM CALLS - Add suitable code her
 
+	case SYS_get_hard_limit:
+		return (uint32) sys_getHardLimit();
+		break;
 	case SYS_sbrk:
 		return (uint32) sys_sbrk((int) a1);
 		break;
 	case SYS_free_user_mem:
-		if((uint32 *)a1 != NULL && a1 > 0 && (a1+a2) < USER_LIMIT && a1 < USER_LIMIT && a2 > 0){
+		if ((uint32 *) a1 != NULL && a1 > 0 && (a1 + a2) < USER_LIMIT
+				&& a1 < USER_LIMIT && a2 > 0) {
 			sys_free_user_mem(a1, a2);
 			return 0;
-		}else sched_kill_env(curenv->env_id);
+		} else
+			sched_kill_env(curenv->env_id);
 		break;
 	case SYS_allocate_user_mem:
-		if((uint32 *)a1 != NULL && a1 > 0 && (a1+a2) < USER_LIMIT && a1 < USER_LIMIT && a2 > 0){
+		if ((uint32 *) a1 != NULL && a1 > 0 && (a1 + a2) < USER_LIMIT
+				&& a1 < USER_LIMIT && a2 > 0) {
 			sys_allocate_user_mem(a1, a2);
 			return 0;
-		}else sched_kill_env(curenv->env_id);
+		} else
+			sched_kill_env(curenv->env_id);
 		break;
 	case SYS_cputs:
-		sys_cputs((const char*)a1,a2,(uint8)a3);
+		sys_cputs((const char*) a1, a2, (uint8) a3);
 		return 0;
 		break;
 	case SYS_cgetc:
@@ -569,21 +621,21 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		return 0;
 		break;
 	case SYS_allocate_chunk_in_mem:
-		sys_allocate_chunk(a1, (uint32)a2, a3);
+		sys_allocate_chunk(a1, (uint32) a2, a3);
 		return 0;
 		break;
 
 		//======================
 	case SYS_allocate_page:
-		__sys_allocate_page((void*)a1, a2);
+		__sys_allocate_page((void*) a1, a2);
 		return 0;
 		break;
 	case SYS_map_frame:
-		__sys_map_frame(a1, (void*)a2, a3, (void*)a4, a5);
+		__sys_map_frame(a1, (void*) a2, a3, (void*) a4, a5);
 		return 0;
 		break;
 	case SYS_unmap_frame:
-		__sys_unmap_frame(a1, (void*)a2);
+		__sys_unmap_frame(a1, (void*) a2);
 		return 0;
 		break;
 		//	case SYS_allocateChunkInPageFile:
@@ -604,47 +656,47 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		break;
 
 	case SYS_cputc:
-		sys_cputc((const char)a1);
+		sys_cputc((const char) a1);
 		return 0;
 		break;
 
 	case SYS_clearFFL:
-		sys_clearFFL((const char)a1);
+		sys_clearFFL((const char) a1);
 		return 0;
 		break;
 
 	case SYS_create_semaphore:
-		return sys_createSemaphore((char*)a1, a2);
+		return sys_createSemaphore((char*) a1, a2);
 		break;
 
 	case SYS_wait_semaphore:
-		sys_waitSemaphore((int32)a1, (char*)a2);
+		sys_waitSemaphore((int32) a1, (char*) a2);
 		return 0;
 		break;
 
 	case SYS_signal_semaphore:
-		sys_signalSemaphore((int32)a1, (char*)a2);
+		sys_signalSemaphore((int32) a1, (char*) a2);
 		return 0;
 		break;
 
 	case SYS_get_semaphore_value:
-		return sys_getSemaphoreValue((int32)a1, (char*)a2);
+		return sys_getSemaphoreValue((int32) a1, (char*) a2);
 		break;
 
 	case SYS_create_shared_object:
-		return sys_createSharedObject((char*)a1, a2, a3, (void*)a4);
+		return sys_createSharedObject((char*) a1, a2, a3, (void*) a4);
 		break;
 
 	case SYS_get_shared_object:
-		return sys_getSharedObject((int32)a1, (char*)a2, (void*)a3);
+		return sys_getSharedObject((int32) a1, (char*) a2, (void*) a3);
 		break;
 
 	case SYS_free_shared_object:
-		return sys_freeSharedObject((int32)a1, (void *)a2);
+		return sys_freeSharedObject((int32) a1, (void *) a2);
 		break;
 
 	case SYS_get_size_of_shared_object:
-		return sys_getSizeOfSharedObject((int32)a1, (char*)a2);
+		return sys_getSizeOfSharedObject((int32) a1, (char*) a2);
 		break;
 
 	case SYS_get_max_shares:
@@ -652,11 +704,11 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		break;
 
 	case SYS_create_env:
-		return sys_create_env((char*)a1, (uint32)a2, (uint32)a3, (uint32)a4);
+		return sys_create_env((char*) a1, (uint32) a2, (uint32) a3, (uint32) a4);
 		break;
 
 	case SYS_run_env:
-		sys_run_env((int32)a1);
+		sys_run_env((int32) a1);
 		return 0;
 		break;
 	case SYS_getenvindex:
@@ -675,11 +727,10 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		sys_exit_env();
 		return 0;
 		break;
-	case SYS_get_virtual_time:
-	{
+	case SYS_get_virtual_time: {
 		struct uint64 res = sys_get_virtual_time();
-		uint32* ptrlow = ((uint32*)a1);
-		uint32* ptrhi = ((uint32*)a2);
+		uint32* ptrlow = ((uint32*) a1);
+		uint32* ptrhi = ((uint32*) a2);
 		*ptrlow = res.low;
 		*ptrhi = res.hi;
 		return 0;
@@ -708,7 +759,7 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 	case SYS_gettst:
 		return gettst();
 	case SYS_testNum:
-		tst(a1, a2, a3, (char)a4, a5);
+		tst(a1, a2, a3, (char) a4, a5);
 		return 0;
 
 	case SYS_get_heap_strategy:
@@ -719,16 +770,17 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4, uin
 		return 0;
 
 	case SYS_check_LRU_lists:
-		return sys_check_LRU_lists((uint32*)a1, (uint32*)a2, (int)a3, (int)a4);
+		return sys_check_LRU_lists((uint32*) a1, (uint32*) a2, (int) a3,
+				(int) a4);
 
 	case SYS_check_LRU_lists_free:
-		return sys_check_LRU_lists_free((uint32*)a1, (int)a2);
+		return sys_check_LRU_lists_free((uint32*) a1, (int) a2);
 
 	case SYS_check_WS_list:
-		return sys_check_WS_list((uint32*)a1, (int)a2, (uint32)a3, (bool)a4);
+		return sys_check_WS_list((uint32*) a1, (int) a2, (uint32) a3, (bool) a4);
 
 	case NSYSCALLS:
-		return 	-E_INVAL;
+		return -E_INVAL;
 		break;
 	}
 	//panic("syscall not implemented");

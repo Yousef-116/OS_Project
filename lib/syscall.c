@@ -360,3 +360,7 @@ void sys_allocate_user_mem(uint32 virtual_address, uint32 size)
 	 syscall(SYS_allocate_user_mem, virtual_address, size, 0, 0, 0);
 }
 
+uint32 sys_getHardLimit()
+{
+	return syscall(SYS_get_hard_limit, 0, 0, 0, 0, 0);
+}

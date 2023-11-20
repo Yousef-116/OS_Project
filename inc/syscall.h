@@ -56,6 +56,8 @@ enum
 	SYS_sbrk,
 	SYS_free_user_mem,
 	SYS_allocate_user_mem,
+	// [PROJECT'23.MS2 #11] get hard limit
+	SYS_get_hard_limit,
 	//=====================================================================
 	NSYSCALLS
 };

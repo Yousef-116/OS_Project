@@ -5,43 +5,40 @@
 #include "memory_manager.h"
 
 uint32 numOfFreePages;
-const int manga_size = (KERNEL_HEAP_MAX - KERNEL_HEAP_START)/PAGE_SIZE;
+const int manga_size = (KERNEL_HEAP_MAX - KERNEL_HEAP_START) / PAGE_SIZE;
 int manga_strt;
-int manga[(KERNEL_HEAP_MAX - KERNEL_HEAP_START)/PAGE_SIZE + 1] = {};
+int manga[(KERNEL_HEAP_MAX - KERNEL_HEAP_START) / PAGE_SIZE + 1] = { };
 
-int va_to_index(void* va)
-{
-	return ((uint32)va  - KERNEL_HEAP_START) / PAGE_SIZE;
+int va_to_index(void* va) {
+	return ((uint32) va - KERNEL_HEAP_START) / PAGE_SIZE;
 }
 
-void* index_to_va(int index)
-{
-	return (void *)(index*PAGE_SIZE + start);
+void* index_to_va(int index) {
+	return (void *) (index * PAGE_SIZE + start);
 }
 
-void myAlloc_pages(void* virtual_address, int num_of_req_pages)
-{
-	for(uint32 va = (uint32)virtual_address; num_of_req_pages > 0; va += PAGE_SIZE, --num_of_req_pages)
-	{
+void myAlloc_pages(void* virtual_address, int num_of_req_pages) {
+	for (uint32 va = (uint32) virtual_address; num_of_req_pages > 0; va +=
+	PAGE_SIZE, --num_of_req_pages) {
 		struct FrameInfo *ptr_frame_info;
 		int ret = allocate_frame(&ptr_frame_info);
-		ret = map_frame(ptr_page_directory, ptr_frame_info, va, PERM_PRESENT|PERM_WRITEABLE);
+		ret = map_frame(ptr_page_directory, ptr_frame_info, va,
+		PERM_PRESENT | PERM_WRITEABLE);
 		ptr_frame_info->va = va;
 	}
 }
 
-void *kmalloc_and_kfree(void* va, uint32 new_size)
-{
+void *kmalloc_and_kfree(void* va, uint32 new_size) {
 	void * ret = kmalloc(new_size);
-	if(ret != NULL)  //allocation succeeded
+	if (ret != NULL)  //allocation succeeded
 	{
 		kfree(va);
 	}
 	return ret;
 }
 
-int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate, uint32 daLimit)
-{
+int initialize_kheap_dynamic_allocator(uint32 daStart,
+		uint32 initSizeToAllocate, uint32 daLimit) {
 	//TODO: [PROJECT'23.MS2 - #01] [1] KERNEL HEAP - initialize_kheap_dynamic_allocator()
 	//Initialize the dynamic allocator of kernel heap with the given start address, size & limit
 	//All pages in the given range should be allocated
@@ -53,24 +50,23 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 	//Comment the following line(s) before start coding...
 	//panic("not implemented yet");
 
-
-	if(daStart + initSizeToAllocate <= daLimit)
-	{
+	if (daStart + initSizeToAllocate <= daLimit) {
 		start = daStart;
 		brk = ROUNDUP(initSizeToAllocate, PAGE_SIZE);
 		brk += daStart;
 
 		hLimit = daLimit;
-		numOfFreePages = (KERNEL_HEAP_MAX - hLimit - PAGE_SIZE)/PAGE_SIZE;
+		numOfFreePages = (KERNEL_HEAP_MAX - hLimit - PAGE_SIZE) / PAGE_SIZE;
 		manga_strt = (hLimit + PAGE_SIZE - KERNEL_HEAP_START) / PAGE_SIZE;
 		manga[manga_strt] = -(manga_size - manga_strt);
 		manga[manga_size - 1] = manga[manga_strt];  // at the end of Brothers
 
-		for(uint32 va = daStart; va <= brk; va += PAGE_SIZE)
+		for (uint32 va = daStart; va <= brk; va += PAGE_SIZE)
 		{
 			struct FrameInfo *ptr_frame_info;
 			int ret = allocate_frame(&ptr_frame_info);
-			ret = map_frame(ptr_page_directory, ptr_frame_info, va, PERM_WRITEABLE);
+			ret = map_frame(ptr_page_directory, ptr_frame_info, va,
+			PERM_WRITEABLE);
 			ptr_frame_info->va = va;
 		}
 
@@ -84,8 +80,7 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 	return E_NO_MEM;
 }
 
-void* sbrk(int increment)
-{
+void* sbrk(int increment) {
 	//TODO: [PROJECT'23.MS2 - #02] [1] KERNEL HEAP - sbrk()
 	/* increment > 0: move the segment break of the kernel to increase the size of its heap,
 	 * 				you should allocate pages and map them into the kernel virtual address space as necessary,
@@ -105,78 +100,108 @@ void* sbrk(int increment)
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
 	//return (void*)-1 ;
 	//panic("not implemented yet");
-
 	uint32 old_brk = brk;
-	if (increment > 0)
-	{
+	if (increment > 0) {
+
+		if (brk % PAGE_SIZE == 1) {
+			uint32 temp_brk = brk;
+			temp_brk = ROUNDUP(temp_brk, PAGE_SIZE);
+
+			increment -= temp_brk - brk;
+
+			if (increment < 0)
+				increment = 0;
+			brk = ROUNDUP(
+					brk, PAGE_SIZE);
+		}
 		increment = ROUNDUP(increment, PAGE_SIZE);
 
-		if (brk + increment >= hLimit)
+		if (brk + increment
+				>= hLimit)
 			panic("\nERROR_1 - brk + increment >= hLimit\n");
 
-		brk += increment;
+		brk += increment; // brk += PAGE_SIZE * n
 
-		struct FrameInfo *ptr_frame_info = NULL;
-		int ret = allocate_frame(&ptr_frame_info);
-		if (ret == E_NO_MEM)
-			panic("\nERROR_2 - cannot allocate frame, no memory\n");
+				for (uint32 i = old_brk; i < brk; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
+						{
+					struct FrameInfo *ptr_frame_info = NULL;
 
-		ret = map_frame(ptr_page_directory, ptr_frame_info, old_brk, PERM_WRITEABLE);
-		if (ret == E_NO_MEM)
-		{
-			free_frame(ptr_frame_info);
-			panic("\nERROR_3 - cannot map to frame, no memory\n");
-		}
+					int ret = allocate_frame(&ptr_frame_info);
+					if (ret == E_NO_MEM)
+						panic("\nERROR_2 - cannot allocate frame, no memory\n");
 
-		ptr_frame_info->va = old_brk;
-		struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
-		meta_data->size = PAGE_SIZE;
-		meta_data->is_free = 1;
-		LIST_INSERT_TAIL(&MemoryList, meta_data);
+					ret = map_frame(ptr_page_directory, ptr_frame_info, i,
+					PERM_WRITEABLE);
+					if (ret == E_NO_MEM) {
+						free_frame(ptr_frame_info);
+						panic("\nERROR_3 - cannot map to frame, no memory\n");
+					}
+
+					ptr_frame_info->va = i;
+				}
+
+				struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
+				meta_data->size = increment;
+				meta_data->is_free = 1;
+				LIST_INSERT_TAIL(&MemoryList, meta_data);
+
 		return (void *) old_brk;
-	}
-	else if (increment < 0)
-	{
+	} else if (increment < 0) {
 		//panic("\nERROR_4 - increment < 0 not implemented yet\n");
 
-		increment = ROUNDDOWN(increment, PAGE_SIZE);
+		//increment = ROUNDDOWN(increment, PAGE_SIZE);
 
 		if (brk + increment <= start)
 			panic("\nERROR_5 - brk + increment <= start\n");
 
 		brk += increment;
 
-		struct FrameInfo *ptr_frame_info = to_frame_info(brk);
-		if (ptr_frame_info == NULL)
-			panic("\nERROR_6 - cannot find frame to free\n");
+		uint32 temp_brk = brk;
+		temp_brk = ROUNDUP(temp_brk, PAGE_SIZE);
+
+		while (temp_brk <= old_brk) {
+			struct FrameInfo *ptr_frame_info = to_frame_info(
+					brk);
+			if (ptr_frame_info == NULL)
+				panic("\nERROR_6 - cannot find frame to free\n");
+
+			unmap_frame(ptr_page_directory,
+					brk);
+			temp_brk += PAGE_SIZE;
+		}
+				for (uint32 i = old_brk - PAGE_SIZE;
+						i >= brk; i -= PAGE_SIZE) // remove all frames between old_brk & new brk
+								{
+					struct FrameInfo *ptr_frame_info = to_frame_info(
+							brk);
+					if (ptr_frame_info == NULL)
+						panic("\nERROR_6 - cannot find frame to free\n");
+
+					unmap_frame(ptr_page_directory,
+							brk);
+				}
 
 		struct BlockMetaData *meta_data = LIST_LAST(&MemoryList);
-
-		if ((uint32)meta_data == (uint32)brk)
+		while ((uint32) meta_data
+				>= (uint32) brk) // remove any metaData above or equals new brk
 		{
 			LIST_REMOVE(&MemoryList, meta_data);
-		}
-		else if (meta_data->is_free == 1)
-		{
-			meta_data->size -= PAGE_SIZE;
+			meta_data = LIST_LAST(&MemoryList);
 		}
 
-		unmap_frame(ptr_page_directory, brk);
-		free_frame(ptr_frame_info);
+		meta_data->size = brk
+				- (uint32) meta_data; // last metaData under new brk - size equals space in between
 
 		return (void *) old_brk;
 
-	}
-	else // increment == 0
+	} else // increment == 0
 	{
 		return (void *) old_brk;
 	}
 
 }
 
-
-void* kmalloc(unsigned int size)
-{
+void* kmalloc(unsigned int size) {
 	//TODO: [PROJECT'23.MS2 - #03] [1] KERNEL HEAP - kmalloc()
 	//refer to the project presentation and documentation for details
 	// use "isKHeapPlacementStrategyFIRSTFIT() ..." functions to check the current strategy
@@ -185,17 +210,15 @@ void* kmalloc(unsigned int size)
 	//kpanic_into_prompt("kmalloc() is not implemented yet...!!");
 
 	//cprintf("size = %u\n", size);
-	if(isKHeapPlacementStrategyFIRSTFIT())
-	{
-		if(size <= DYN_ALLOC_MAX_BLOCK_SIZE)
-		{
+	if (isKHeapPlacementStrategyFIRSTFIT()) {
+		if (size <= DYN_ALLOC_MAX_BLOCK_SIZE) {
 			//cprintf("dynamic allocator\n");
 			return alloc_block_FF(size);
 		}
 
 		uint32 _size = size;
 		int num_of_req_pages = ROUNDUP(_size, PAGE_SIZE) / PAGE_SIZE;
-		if(num_of_req_pages > numOfFreePages){
+		if (num_of_req_pages > numOfFreePages) {
 			//cprintf("not enought pages: %d < %d\n",numOfFreePages, num_of_req_pages);
 			return NULL;
 		}
@@ -203,38 +226,31 @@ void* kmalloc(unsigned int size)
 		uint32 *ptr_page_table = NULL;
 		void* _1stVa;
 		int index = -1;
-		for(int i = manga_strt; i < manga_size; )
-		{
-			if(manga[i] < 0)
-			{
-				if(-manga[i] == num_of_req_pages)
-				{
+		for (int i = manga_strt; i < manga_size;) {
+			if (manga[i] < 0) {
+				if (-manga[i] == num_of_req_pages) {
 					manga[i - manga[i] - 1] = 0;  // at the end of Brothers
 					manga[i] = num_of_req_pages;
 					index = i;
 					break;
-				}
-				else if(-manga[i] > num_of_req_pages)
-				{
+				} else if (-manga[i] > num_of_req_pages) {
 					manga[i + num_of_req_pages] = manga[i] + num_of_req_pages;
-					manga[i + num_of_req_pages - manga[i + num_of_req_pages] - 1] = manga[i + num_of_req_pages];
+					manga[i + num_of_req_pages - manga[i + num_of_req_pages] - 1] =
+							manga[i + num_of_req_pages];
 
 					manga[i] = num_of_req_pages;
 
 					index = i;
 					break;
-				}
-				else
-				{
+				} else {
 					i -= manga[i];
 				}
-			}
-			else {
+			} else {
 				i += manga[i];
 			}
 		}
 
-		if(index == -1){
+		if (index == -1) {
 			return NULL;
 		}
 
@@ -249,8 +265,7 @@ void* kmalloc(unsigned int size)
 	return NULL;
 }
 
-void kfree(void* virtual_address)
-{
+void kfree(void* virtual_address) {
 	//TODO: [PROJECT'23.MS2 - #04] [1] KERNEL HEAP - kfree()
 	//refer to the project presentation and documentation for details
 	// Write your code here, remove the panic and write your code
@@ -259,52 +274,49 @@ void kfree(void* virtual_address)
 	uint32 *ptr_page_table = NULL;
 	struct FrameInfo *ptr_frame_info = virtual_address;
 
-	if((uint32) virtual_address >= start && (uint32) virtual_address <= brk) // block area
-	{
+	if ((uint32) virtual_address >= start && (uint32) virtual_address <= brk) // block area
+			{
 		return free_block(virtual_address);
-	}
-	else if((uint32) virtual_address >= (hLimit + PAGE_SIZE) && (uint32) virtual_address <= KERNEL_HEAP_MAX - PAGE_SIZE)
-	{
+	} else if ((uint32) virtual_address
+			>= (hLimit + PAGE_SIZE)&& (uint32) virtual_address <= KERNEL_HEAP_MAX - PAGE_SIZE) {
 //		int index = ((uint32)virtual_address  - KERNEL_HEAP_START) / PAGE_SIZE;
 		int index = va_to_index(virtual_address);
 		//cprintf("index = %d \n" , manga[index]);
-		uint32 noOfBrothers =  manga[index];
+		uint32 noOfBrothers = manga[index];
 
-		if(noOfBrothers == 0) return;
+		if (noOfBrothers == 0)
+			return;
 
-		for(uint32 va = (uint32)virtual_address ;noOfBrothers > 0 ; --noOfBrothers , va += PAGE_SIZE)
-		{
-			unmap_frame(ptr_page_directory ,va);
+		for (uint32 va = (uint32) virtual_address; noOfBrothers > 0;
+				--noOfBrothers, va += PAGE_SIZE) {
+			unmap_frame(ptr_page_directory, va);
 		}
 
 		numOfFreePages += manga[index];
 		manga[index] *= -1;
 
-		if(manga[index - manga[index]] < 0) // next are free -> merge
-		{
+		if (manga[index - manga[index]] < 0) // next are free -> merge
+				{
 			int i = index - manga[index];
 			manga[index] += manga[i];
 			manga[i] = 0;
 		}
-		if(manga[index - 1] < 0) // prev are free -> merge
-		{
+		if (manga[index - 1] < 0) // prev are free -> merge
+				{
 			manga[index + manga[index - 1]] += manga[index];
 			manga[index] = 0;
 			int i = manga[index - 1];
 			manga[index - 1] = 0;
 			index += i;
 		}
-		manga[index - manga[index] - 1] = manga[index];  // at the end of Brothers
+		manga[index - manga[index] - 1] = manga[index]; // at the end of Brothers
 
-	}
-	else
-	{
+	} else {
 		panic("Invalid address");
 	}
 }
 
-unsigned int kheap_virtual_address(unsigned int physical_address)
-{
+unsigned int kheap_virtual_address(unsigned int physical_address) {
 	//TODO: [PROJECT'23.MS2 - #05] [1] KERNEL HEAP - kheap_virtual_address()
 	//refer to the project presentation and documentation for details
 	// Write your code here, remove the panic and write your code
@@ -317,34 +329,32 @@ unsigned int kheap_virtual_address(unsigned int physical_address)
 //	cprintf("ref  = %x \n" ,ptr_frame_info->references);
 	//cprintf("pa actual = %x \n" ,physical_address);
 
-	if(ptr_frame_info->references == 0)	return 0;
-	else
-	{
+	if (ptr_frame_info->references == 0)
+		return 0;
+	else {
 		uint32 mask = 0xFFF;
 
 		uint32 offset = physical_address & mask;
 
 //		cprintf("offset = %x \n" , offset);
 
-
 		//cprintf("virtual = %x \n" ,(ptr_frame_info->va) + offset);
 
-        return (ptr_frame_info->va) + offset;
+		return (ptr_frame_info->va) + offset;
 	}
 	//change this "return" according to your answer
 	//return 0;
 }
-unsigned int kheap_physical_address(unsigned int virtual_address)
-{
+unsigned int kheap_physical_address(unsigned int virtual_address) {
 	//TODO: [PROJECT'23.MS2 - #06] [1] KERNEL HEAP - kheap_physical_address()
 	//refer to the project presentation and documentation for details
 	// Write your code here, remove the panic and write your code
 	//panic("kheap_physical_address() is not implemented yet...!!");
 
 	uint32 *ptr_page_table = NULL;
-	unsigned int ret = get_page_table(ptr_page_directory, virtual_address, &ptr_page_table);
-	if (ret == TABLE_IN_MEMORY)
-	{
+	unsigned int ret = get_page_table(ptr_page_directory, virtual_address,
+			&ptr_page_table);
+	if (ret == TABLE_IN_MEMORY) {
 		uint32 table_entry = ptr_page_table[PTX(virtual_address)];
 
 		uint32 frame_number = table_entry >> 12;
@@ -360,25 +370,18 @@ unsigned int kheap_physical_address(unsigned int virtual_address)
 	return 0;
 }
 
-
-void kfreeall()
-{
+void kfreeall() {
 	panic("Not implemented!");
 
 }
 
-void kshrink(uint32 newSize)
-{
+void kshrink(uint32 newSize) {
 	panic("Not implemented!");
 }
 
-void kexpand(uint32 newSize)
-{
+void kexpand(uint32 newSize) {
 	panic("Not implemented!");
 }
-
-
-
 
 //=================================================================================//
 //============================== BONUS FUNCTION ===================================//
@@ -393,65 +396,51 @@ void kexpand(uint32 newSize)
 //	A call with virtual_address = null is equivalent to kmalloc().
 //	A call with new_size = zero is equivalent to kfree().
 
-void *krealloc(void *virtual_address, uint32 new_size)
-{
+void *krealloc(void *virtual_address, uint32 new_size) {
 	//TODO: [PROJECT'23.MS2 - BONUS#1] [1] KERNEL HEAP - krealloc()
 	// Write your code here, remove the panic and write your code
 //	return NULL;
 //	panic("krealloc() is not implemented yet...!!");
 
-	if((uint32)virtual_address < brk)
-	{
+	if ((uint32) virtual_address < brk) {
 		//cprintf("dynamic allocator\n");
-		if(new_size <= DYN_ALLOC_MAX_BLOCK_SIZE)
-		{
+		if (new_size <= DYN_ALLOC_MAX_BLOCK_SIZE) {
 			return realloc_block_FF(virtual_address, new_size);
-		}
-		else
-		{
+		} else {
 			void* ret = kmalloc(new_size);
-			if(ret != NULL)
-			{
+			if (ret != NULL) {
 				free_block(virtual_address);
 				return ret;
-			}
-			else{
+			} else {
 				return virtual_address;
 			}
 		}
-	}
-	else if(virtual_address == NULL && new_size == 0)
-	{
+	} else if (virtual_address == NULL && new_size == 0) {
 		return NULL;
-	}
-	else if(virtual_address == NULL )
-	{
+	} else if (virtual_address == NULL) {
 		return kmalloc(new_size);
-	}
-	else if( new_size == 0 )
-	{
-	    kfree(virtual_address);
-	    return NULL;
+	} else if (new_size == 0) {
+		kfree(virtual_address);
+		return NULL;
 	}
 
 	int index = va_to_index(virtual_address);
-	if(manga[index] < 0){
+	if (manga[index] < 0) {
 		return NULL;
 	}
 
 	int num_of_req_pages = ROUNDUP(new_size, PAGE_SIZE) / PAGE_SIZE;
-	if(manga[index] == num_of_req_pages)
+	if (manga[index] == num_of_req_pages)
 		return virtual_address;
 
-	if(index + manga[index] < manga_size) //not the last
-	{
-		if(manga[index] < num_of_req_pages)  //new size is greater
-		{
-			int nxt_index = index + manga[index];
-			if(manga[nxt_index] < 0) // next is free
+	if (index + manga[index] < manga_size) //not the last
 			{
-				if(manga[index] + -manga[nxt_index] == num_of_req_pages)
+		if (manga[index] < num_of_req_pages)  //new size is greater
 				{
+			int nxt_index = index + manga[index];
+			if (manga[nxt_index] < 0) // next is free
+					{
+				if (manga[index] + -manga[nxt_index] == num_of_req_pages) {
 					int page_num = num_of_req_pages - manga[index];
 					myAlloc_pages(index_to_va(nxt_index), page_num);
 
@@ -459,45 +448,37 @@ void *krealloc(void *virtual_address, uint32 new_size)
 					manga[nxt_index - manga[nxt_index] - 1] = 0;
 					manga[nxt_index] = 0;
 					return virtual_address;
-				}
-				else if(manga[index] + -manga[nxt_index] > num_of_req_pages)
-				{
+				} else if (manga[index] + -manga[nxt_index]
+						> num_of_req_pages) {
 					int page_num = num_of_req_pages - manga[index];
 					myAlloc_pages(index_to_va(nxt_index), page_num);
 
 					manga[index] = num_of_req_pages;
 					manga[nxt_index - manga[nxt_index] - 1] += page_num;
-					manga[index + num_of_req_pages] = manga[nxt_index - manga[nxt_index] - 1];
+					manga[index + num_of_req_pages] = manga[nxt_index
+							- manga[nxt_index] - 1];
 					manga[nxt_index] = 0;
 					return virtual_address;
-				}
-				else
-				{
+				} else {
 					return kmalloc_and_kfree(virtual_address, new_size);
 				}
-			}
-			else
-			{
+			} else {
 				return kmalloc_and_kfree(virtual_address, new_size);
 			}
 		}
-		if(manga[index] > num_of_req_pages)  //new size is smaller
-		{
+		if (manga[index] > num_of_req_pages)  //new size is smaller
+				{
 			int remain_pages = manga[index] - num_of_req_pages;
 			manga[index] = num_of_req_pages;
 			manga[index + num_of_req_pages] = remain_pages;
 			kfree(index_to_va(index + num_of_req_pages));
 			return virtual_address;
 		}
-	}
-	else  // last
+	} else  // last
 	{
-		if(manga[index] < num_of_req_pages)
-		{
+		if (manga[index] < num_of_req_pages) {
 			return kmalloc_and_kfree(virtual_address, new_size);
-		}
-		else
-		{
+		} else {
 			int remain_pages = manga[index] - num_of_req_pages;
 			manga[index] = num_of_req_pages;
 			manga[index + num_of_req_pages] = remain_pages;
