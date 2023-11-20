@@ -139,20 +139,20 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	//panic("allocate_user_mem() is not implemented yet...!!");
 
 	int num_of_req_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
-	cprintf("num_of_req_pages = %d\n", num_of_req_pages);
+	//cprintf("num_of_req_pages = %d\n", num_of_req_pages);
 	int ret;
 	for(uint32 va = virtual_address; num_of_req_pages > 0; --num_of_req_pages, va += PAGE_SIZE)
 	{
 		//cprintf("1..");
 		uint32* ptr_page_table = NULL;
-		ret = get_page_table(ptr_page_directory, va, &ptr_page_table);
+		ret = get_page_table(e->env_page_directory, va, &ptr_page_table);
 
 		if(ret == TABLE_NOT_EXIST){
 			//cprintf("create page table\n");
-			create_page_table(ptr_page_directory, va);
+			create_page_table(e->env_page_directory, va);
 		}
 
-		pt_set_page_permissions(ptr_page_directory, va, MARKED, PERM_PRESENT);
+		pt_set_page_permissions(e->env_page_directory, va, MARKED, PERM_PRESENT);
 	}
 }
 
