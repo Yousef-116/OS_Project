@@ -56,6 +56,8 @@ void init_uheap()
 	umanga[umanga_strt] = -(umanga_size - umanga_strt);
 	umanga[umanga_size - 1] = umanga[umanga_strt];  // at the end of Brothers
 	numOfUnmarkedPages = (USER_HEAP_MAX - user_hLimit - PAGE_SIZE) / PAGE_SIZE;
+
+	cprintf("user_hLimit = %x, umanga_strt = %d\n\n", user_hLimit, umanga_strt);
 }
 
 int ctr = 1;
@@ -91,6 +93,7 @@ void* malloc(uint32 size)
 			//cprintf("not enought pages: %d < %d\n",numOfFreePages, num_of_req_pages);
 			return NULL;
 		}
+		cprintf("size = %d, num_of_req_pages = %d\n", size, num_of_req_pages);
 
 		uint32 *ptr_page_table = NULL;
 		void* _1stVa;
@@ -109,10 +112,9 @@ void* malloc(uint32 size)
 				else if (-umanga[i] > num_of_req_pages)
 				{
 					umanga[i + num_of_req_pages] = umanga[i] + num_of_req_pages;
-					umanga[i + num_of_req_pages - umanga[i + num_of_req_pages] - 1] =
-							umanga[i + num_of_req_pages];
+					umanga[i + num_of_req_pages - umanga[i + num_of_req_pages] - 1] = umanga[i + num_of_req_pages];
 
-					umanga[i] = num_of_req_pages;
+					umanga[i] = num_of_req_pages;  // marked
 					index = i;
 					break;
 				}
@@ -129,6 +131,7 @@ void* malloc(uint32 size)
 			return NULL;
 		}
 
+		cprintf("index = %d\n", index);
 		_1stVa = index_to_Uva(index);
 		numOfUnmarkedPages -= num_of_req_pages;
 		sys_allocate_user_mem((uint32)_1stVa, size);

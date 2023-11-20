@@ -379,7 +379,7 @@ void fault_handler(struct Trapframe *tf)
 			//(e.g. pointing to unmarked user heap page, kernel or wrong access rights),
 			//your code is here
 
-			//cprintf("\nIn check for invalid pointers\n");
+			cprintf("\nIn check for invalid pointers\n");
 
 			// pointing to kernel
 			if (fault_va >= USER_LIMIT){
@@ -388,19 +388,19 @@ void fault_handler(struct Trapframe *tf)
 			}
 
 			// Unmapped page
-			uint32 *ptr_page_table = NULL;
-			struct FrameInfo* frame_info = get_frame_info(ptr_page_directory, fault_va, &ptr_page_table);
-			if (frame_info == NULL && fault_va >= USER_HEAP_START  && fault_va < USER_HEAP_MAX ){
-				cprintf("\nFaulted VA failed due to unmapped page\n");
-				sched_kill_env(curenv->env_id);
-			}
-
-			unsigned int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
-//			// Unmarked
-//			if (!(perms & MARKED)){
-//				cprintf("\nFaulted VA failed due to marked permission\n") ;
+//			uint32 *ptr_page_table = NULL;
+//			struct FrameInfo* frame_info = get_frame_info(ptr_page_directory, fault_va, &ptr_page_table);
+//			if (frame_info == NULL && fault_va >= USER_HEAP_START  && fault_va < USER_HEAP_MAX ){
+//				cprintf("\nFaulted VA failed due to unmapped page\n");
 //				sched_kill_env(curenv->env_id);
 //			}
+
+			unsigned int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
+			// Unmarked
+			if ((perms & MARKED)){
+				cprintf("\nFaulted VA failed due to marked permission\n") ;
+				sched_kill_env(curenv->env_id);
+			}
 
 			// Exist with read-only permissions
 			if ((perms & PERM_USER)){
@@ -414,7 +414,7 @@ void fault_handler(struct Trapframe *tf)
 //				sched_kill_env(curenv->env_id);
 //			}
 
-			//cprintf("\nOut of check for invalid pointers\n");
+			cprintf("\nOut of check for invalid pointers\n");
 
 			/*============================================================================================*/
 		}
