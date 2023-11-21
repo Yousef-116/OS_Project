@@ -98,16 +98,23 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		}
 		if(alloc == 1)
 		{
-			//cprintf("alloc = 1\n");
+			//cprintf("alloc fault handler = 1\n");
 			struct FrameInfo * targetPageFrame;
 			allocate_frame(&targetPageFrame);
+			//map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_PRESENT | PERM_WRITEABLE | MARKED);
 			map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_PRESENT | PERM_WRITEABLE);
+
+
+			unsigned int perms = pt_get_page_permissions(curenv->env_page_directory, fault_va);
+			//cprintf(">> perms in fault handler =%x\n", perms);
+
 
 			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
 			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
+			//cprintf("alloc fault handler = 2 s\n");
 		}
 
-		// update page_last_WS_element for FIFO and clock algorithm
+		// update page_last_WS_element for FIFO
 		if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
 		{
 			curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);

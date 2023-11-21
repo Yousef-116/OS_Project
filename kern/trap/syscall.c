@@ -475,11 +475,22 @@ void* sys_sbrk(int increment) {
 			if (ret == E_NO_MEM)
 				panic("\nERROR_2 - cannot allocate frame, no memory\n");
 
-			ret = map_frame(ptr_page_directory, ptr_frame_info, i, PERM_WRITEABLE);
+			//ret = map_frame(curenv->env_page_directory, ptr_frame_info, i, PERM_WRITEABLE|MARKED|PERM_USER);
+			ret = map_frame(curenv->env_page_directory, ptr_frame_info, i, PERM_WRITEABLE| PERM_USER );
 			if (ret == E_NO_MEM) {
 				free_frame(ptr_frame_info);
 				panic("\nERROR_3 - cannot map to frame, no memory\n");
 			}
+
+
+			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, i);
+			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
+
+			if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
+				{
+					curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
+				}
+
 
 			ptr_frame_info->va = i;
 		}

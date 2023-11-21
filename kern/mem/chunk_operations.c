@@ -152,7 +152,8 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 			create_page_table(e->env_page_directory, va);
 		}
 
-		pt_set_page_permissions(e->env_page_directory, va, MARKED, PERM_PRESENT);
+		//pt_set_page_permissions(e->env_page_directory, va, MARKED | PERM_USER | PERM_WRITEABLE , PERM_PRESENT);
+		pt_set_page_permissions(e->env_page_directory, va, PERM_USER | PERM_WRITEABLE , PERM_PRESENT);
 	}
 }
 
