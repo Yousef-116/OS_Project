@@ -101,25 +101,38 @@ void* sbrk(int increment) {
 	//return (void*)-1 ;
 	//panic("not implemented yet");
 	uint32 old_brk = brk;
+	uint32 new_brk = old_brk;
 	if (increment > 0) {
+		new_brk +=increment;
+		uint32 diff = new_brk - start;
 
-		if (brk % PAGE_SIZE == 1) {
-			uint32 temp_brk = brk;
-			temp_brk = ROUNDUP(temp_brk, PAGE_SIZE);
-
-			increment -= temp_brk - brk;
-
-			if (increment < 0)
-				increment = 0;
-			brk = ROUNDUP(
-					brk, PAGE_SIZE);
+		if (diff % PAGE_SIZE != 0){
+			new_brk = ROUNDUP(diff, PAGE_SIZE) + start;
 		}
-		increment = ROUNDUP(increment, PAGE_SIZE);
 
-		if (brk + increment >= hLimit)
+		if (new_brk >= hLimit ){
 			panic("\nERROR_1 - brk + increment >= hLimit\n");
+		}
+		else {
+			brk = new_brk;
+		}
+//		if (brk % PAGE_SIZE == 1) {
+//			uint32 temp_brk = brk;
+//			temp_brk = ROUNDUP(temp_brk, PAGE_SIZE);
+//
+//			increment -= temp_brk - brk;
+//
+//			if (increment < 0)
+//				increment = 0;
+//			brk = ROUNDUP(
+//					brk, PAGE_SIZE);
+//		}
+//		increment = ROUNDUP(increment, PAGE_SIZE);
 
-		brk += increment; // brk += PAGE_SIZE * n
+//		if (brk + increment >= hLimit)
+//			panic("\nERROR_1 - brk + increment >= hLimit\n");
+//
+//		brk += increment; // brk += PAGE_SIZE * n
 
 				for (uint32 i = old_brk; i < brk; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
 				{
@@ -154,45 +167,45 @@ void* sbrk(int increment) {
 		if (brk + increment <= start)
 			panic("\nERROR_5 - brk + increment <= start\n");
 
-		brk += increment;
+		new_brk += increment;
 
-		uint32 temp_brk = brk;
-		temp_brk = ROUNDUP(temp_brk, PAGE_SIZE);
+		uint32 diff = new_brk - start;
+		uint32 temp_brk = ROUNDUP(diff, PAGE_SIZE) + start;
 
 		while (temp_brk <= old_brk) {
 			struct FrameInfo *ptr_frame_info = to_frame_info(
-					brk);
+					temp_brk);
 			if (ptr_frame_info == NULL)
 				panic("\nERROR_6 - cannot find frame to free\n");
 
 			unmap_frame(ptr_page_directory,
-					brk);
+					temp_brk);
 			temp_brk += PAGE_SIZE;
 		}
-				for (uint32 i = old_brk - PAGE_SIZE;
-						i >= brk; i -= PAGE_SIZE) // remove all frames between old_brk & new brk
-								{
-					struct FrameInfo *ptr_frame_info = to_frame_info(
-							brk);
-					if (ptr_frame_info == NULL)
-						panic("\nERROR_6 - cannot find frame to free\n");
-
-					unmap_frame(ptr_page_directory,
-							brk);
-				}
+//				for (uint32 i = old_brk - PAGE_SIZE;
+//						i >= brk; i -= PAGE_SIZE) // remove all frames between old_brk & new brk
+//								{
+//					struct FrameInfo *ptr_frame_info = to_frame_info(
+//							brk);
+//					if (ptr_frame_info == NULL)
+//						panic("\nERROR_6 - cannot find frame to free\n");
+//
+//					unmap_frame(ptr_page_directory,
+//							brk);
+//				}
 
 		struct BlockMetaData *meta_data = LIST_LAST(&MemoryList);
 		while ((uint32) meta_data
-				>= (uint32) brk) // remove any metaData above or equals new brk
+				>= (uint32) new_brk) // remove any metaData above or equals new brk
 		{
 			LIST_REMOVE(&MemoryList, meta_data);
 			meta_data = LIST_LAST(&MemoryList);
 		}
 
-		meta_data->size = brk
+		meta_data->size = new_brk
 				- (uint32) meta_data; // last metaData under new brk - size equals space in between
 
-		return (void *) brk;
+		return (void *) new_brk;
 
 	} else // increment == 0
 	{

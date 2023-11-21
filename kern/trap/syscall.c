@@ -462,7 +462,7 @@ void* sys_sbrk(int increment) {
 			new_brk = ROUNDUP(diff, PAGE_SIZE) + env->dynamic_allocate_USER_heap_start;
 		}
 
-		if(new_brk > env->dynamic_allocate_USER_heap_hLimit)
+		if(new_brk >= env->dynamic_allocate_USER_heap_hLimit)
 			return (void *)-1;
 		else
 			env->dynamic_allocate_USER_heap_break = new_brk;
@@ -541,7 +541,7 @@ void* sys_sbrk(int increment) {
 		new_brk += increment;
 
 
-		int diff = new_brk - env->dynamic_allocate_USER_heap_start;
+		uint32 diff = new_brk - env->dynamic_allocate_USER_heap_start;
 		uint32 temp_brk = ROUNDUP(diff, PAGE_SIZE) + env->dynamic_allocate_USER_heap_start;
 
 		while (temp_brk <= old_brk) {
@@ -581,6 +581,19 @@ void* sys_sbrk(int increment) {
 //
 //		meta_data->size = env->dynamic_allocate_USER_heap_break
 //				- (uint32) meta_data; // last metaData under new brk - size equals space in between
+
+		struct WorkingSetElement *WSElem = LIST_LAST(&(env->page_WS_list));
+				while ((uint32) WSElem
+						>= (uint32) new_brk) // remove any metaData above or equals new brk
+				{
+					LIST_REMOVE(&(env->page_WS_list), WSElem);
+					WSElem = LIST_LAST(&(env->page_WS_list));
+				}
+
+//				meta_data->size = brk
+//						- (uint32) meta_data; // last metaData under new brk - size equals space in between
+//
+
 
 		return (void *) env->dynamic_allocate_USER_heap_break;
 
