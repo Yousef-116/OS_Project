@@ -497,13 +497,13 @@ void* sys_sbrk(int increment) {
 
 		//=============================================================================================
 
-		increment = ROUNDUP(increment, PAGE_SIZE);
-
-		if (env->dynamic_allocate_USER_heap_break + increment
-				>= env->dynamic_allocate_USER_heap_hLimit)
-			return (void *)-1;
-
-		env->dynamic_allocate_USER_heap_break += increment; // brk += PAGE_SIZE * n
+//		increment = ROUNDUP(increment, PAGE_SIZE);
+//
+//		if (env->dynamic_allocate_USER_heap_break + increment
+//				>= env->dynamic_allocate_USER_heap_hLimit)
+//			return (void *)-1;
+//
+//		env->dynamic_allocate_USER_heap_break += increment; // brk += PAGE_SIZE * n
 
 //		for (uint32 i = old_brk; i < env->dynamic_allocate_USER_heap_break; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
 //				{
@@ -528,30 +528,37 @@ void* sys_sbrk(int increment) {
 //		meta_data->is_free = 1;
 //		LIST_INSERT_TAIL(&MemoryList, meta_data);
 
-		return (void *) old_brk;
+//		return (void *) old_brk;
+
 	} else if (increment < 0) {
 		//panic("\nERROR_4 - increment < 0 not implemented yet\n");
 
 		//increment = ROUNDDOWN(increment, PAGE_SIZE);
 
-		if (env->dynamic_allocate_USER_heap_break + increment <= env->dynamic_allocate_USER_heap_start)
+		if (old_brk + increment <= env->dynamic_allocate_USER_heap_start)
 			return (void *)-1;
 
-		env->dynamic_allocate_USER_heap_break += increment;
+		new_brk += increment;
 
-		uint32 temp_brk = env->dynamic_allocate_USER_heap_break;
-		temp_brk = ROUNDUP(temp_brk, PAGE_SIZE);
+
+		int diff = new_brk - env->dynamic_allocate_USER_heap_start;
+		uint32 temp_brk = ROUNDUP(diff, PAGE_SIZE) + env->dynamic_allocate_USER_heap_start;
 
 		while (temp_brk <= old_brk) {
 			struct FrameInfo *ptr_frame_info = to_frame_info(
-					env->dynamic_allocate_USER_heap_break);
+					temp_brk);
 			if (ptr_frame_info == NULL)
 				return (void *)-1;
 
 			unmap_frame(env->env_page_directory,
-					env->dynamic_allocate_USER_heap_break);
+					temp_brk);
+
+			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(env, temp_brk);
+			LIST_REMOVE(&(env->page_WS_list), WSElem);
+
 			temp_brk += PAGE_SIZE;
 		}
+		env->dynamic_allocate_USER_heap_break = new_brk;
 //		for (uint32 i = old_brk - PAGE_SIZE;
 //				i >= env->dynamic_allocate_USER_heap_break; i -= PAGE_SIZE) // remove all frames between old_brk & new brk
 //						{
