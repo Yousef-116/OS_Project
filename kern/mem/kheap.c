@@ -66,7 +66,7 @@ int initialize_kheap_dynamic_allocator(uint32 daStart,
 			struct FrameInfo *ptr_frame_info;
 			int ret = allocate_frame(&ptr_frame_info);
 			ret = map_frame(ptr_page_directory, ptr_frame_info, va,
-			PERM_WRITEABLE);
+			PERM_WRITEABLE | PERM_PRESENT);
 			ptr_frame_info->va = va;
 		}
 
@@ -130,7 +130,7 @@ void* sbrk(int increment) {
 						panic("\nERROR_2 - cannot allocate frame, no memory\n");
 
 					ret = map_frame(ptr_page_directory, ptr_frame_info, i,
-					PERM_WRITEABLE);
+					PERM_WRITEABLE | PERM_PRESENT);
 					if (ret == E_NO_MEM) {
 						free_frame(ptr_frame_info);
 						panic("\nERROR_3 - cannot map to frame, no memory\n");

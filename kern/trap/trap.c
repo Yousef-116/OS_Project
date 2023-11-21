@@ -379,85 +379,43 @@ void fault_handler(struct Trapframe *tf)
 			//(e.g. pointing to unmarked user heap page, kernel or wrong access rights),
 			//your code is here
 
-			unsigned int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
-             if(fault_va>=USER_HEAP_START)
-             {
-            	// cprintf(">>  111111111 \n");
-            	 if(fault_va <USER_HEAP_MAX)
-            	 {
-            		// cprintf(">> 222222222222 \n");
-						//cprintf(">> perms=%x \n", perms);
-						//cprintf(">> perms= %x \n", fault_va);
-            		    // Unmarked for User
-						if ((perms & PERM_USER) != PERM_USER){
-							cprintf("\nFaulted VA failed due to perm user 111111111  permission\n") ;
-							sched_kill_env(curenv->env_id);
-						}
-						// pointing to kernel
-						else if (fault_va >= USER_LIMIT){
-							cprintf("\nFaulted VA >= USER_LIMIT 2222222222222222 \n");
-							sched_kill_env(curenv->env_id);
-						}
-						// Exist with read-only permissions
-						else if ((perms & PERM_WRITEABLE) != PERM_WRITEABLE){
-							cprintf("\nFaulted VA failed due to read write permission  33333333333 \n");
-							cprintf("perms & PERM_WRITEABLE = %x\n", perms & PERM_WRITEABLE);
-							sched_kill_env(curenv->env_id);
-						}
-                     }
-
-             }
-
-			//cprintf("\n print El :-) fault_va :=) %x \n",fault_va);
+			//cprintf("\nIn check for invalid pointers\n");
 
 			// pointing to kernel
-//			if (fault_va >= USER_LIMIT){
-//				cprintf("\nFaulted VA >= USER_LIMIT   111111 \n");
+
+			int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
+			cprintf("Permission = %d \n" , perms);
+            cprintf("faulted_va = %x \n" , fault_va);
+
+			if (fault_va >= USER_LIMIT){
+				cprintf("\nFaulted VA >= USER_LIMIT\n");
+				sched_kill_env(faulted_env->env_id);
+			}
+
+
+            // Exist with read-only permissions
+			if ((perms & PERM_USER)){
+				cprintf("\nFaulted VA failed due to R/W permission\n");
+				sched_kill_env(faulted_env->env_id);
+			}
+
+
+			// Unmarked
+			if (!(perms & MARKED) && (fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX)){
+				cprintf("\nFaulted VA failed due to marked permission\n") ;
+				sched_kill_env(faulted_env->env_id);
+			}
+
+
+
+//			// Not in Page File, Not Stack & Not Heap
+//			if (fault_va < USER_HEAP_START){
+//				//cprintf("\nFaulted VA failed <= user_heap_start\n");
 //				sched_kill_env(curenv->env_id);
 //			}
-//
-//			// Unmapped page
-			//uint32 *ptr_page_table = NULL;
-			//struct FrameInfo* frame_info = get_frame_info(ptr_page_directory, fault_va, &ptr_page_table);
-////			if (frame_info == NULL || frame_info->va < USER_HEAP_START  || frame_info->va > USER_HEAP_MAX ){
-////				cprintf("\nFaulted VA failed due to unmapped page  22222222 \n  ");
-////				sched_kill_env(curenv->env_id);
-////			}
-//
-////			if (frame_info == NULL  ){
-////							cprintf("\nFaulted VA failed due to unmapped page 6666666 \n  ");
-////							sched_kill_env(curenv->env_id);
-////						}
-//
-//			if (  fault_va < USER_HEAP_START  || fault_va> USER_HEAP_MAX  ){
-//							cprintf("\nFaulted VA failed due to unmapped page  7777777 \n  ");
-//							sched_kill_env(curenv->env_id);
-//						}
-////
-//			unsigned int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
-//			// Unmarked
-//			if(perms & PERM_USER)
-//			{
-//			if (!(perms & MARKED)){
-//				cprintf("\nFaulted VA failed due to marked permission  3333333\n") ;
-//				sched_kill_env(curenv->env_id);
-//			}
-//			}
-//
-//			// Exist with read-only permissions
-//			if ((perms & PERM_USER)){
-//				cprintf("\nFaulted VA failed due to read write permission   4444444\n") ;
-//				sched_kill_env(curenv->env_id);
-//			}
-//
-////			// Not in Page File, Not Stack & Not Heap
-////			if (fault_va < USER_HEAP_START){
-////				//cprintf("\nFaulted VA failed <= user_heap_start\n");
-////				sched_kill_env(curenv->env_id);
-////			}
-//
-//			//cprintf("\nOut of check for invalid pointers\n");
-//
+
+			//cprintf("\nOut of check for invalid pointers\n");
+
 			/*============================================================================================*/
 		}
 

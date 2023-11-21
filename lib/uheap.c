@@ -152,7 +152,20 @@ void free(void* virtual_address)
 {
 	//TODO: [PROJECT'23.MS2 - #11] [2] USER HEAP - free() [User Side]
 	// Write your code here, remove the panic and write your code
-	panic("free() is not implemented yet...!!");
+	//panic("free() is not implemented yet...!!");
+
+	if((uint32)virtual_address >= USER_HEAP_START && (uint32)virtual_address <(uint32)sbrk(0)) // block allocator
+	{
+		cprintf("sbrk ======================= %x\n\n\n\n\n\n" , sbrk(0));
+		free_block(virtual_address);
+	}else if ((uint32)virtual_address >=user_hLimit + PAGE_SIZE && (uint32)virtual_address < USER_HEAP_MAX)// page allocator
+	{
+		int index = Uva_to_index(virtual_address);
+		uint32 size = umanga[index] * PAGE_SIZE;
+		umanga[index] *= -1;
+		sys_free_user_mem((uint32) virtual_address , size);
+	}else
+		panic("invalid address (free (USER)) \n");
 }
 
 

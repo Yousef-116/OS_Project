@@ -164,13 +164,13 @@ void *alloc_block_FF(uint32 size)
 
     if (!is_initialized)
     {
-    	//cprintf("block allocator initializing\n");
+    	cprintf("block allocator initializing\n");
 		uint32 required_size = size + sizeOfMetaData();
 		uint32 da_start = (uint32)sbrk(required_size);
 		//get new break since it's page aligned! thus, the size can be more than the required one
 		uint32 da_break = (uint32)sbrk(0);
 		initialize_dynamic_allocator(da_start, da_break - da_start);
-    	//cprintf("block allocator initialized\n");
+    	cprintf("block allocator initialized\n");
     }
 
 
@@ -210,7 +210,7 @@ void *alloc_block_FF(uint32 size)
 
 //		return alloc_block_FF(size);
     }
-   // cprintf("\n======> sbrk called and failed\n");
+    //cprintf("\n======> sbrk called and failed\n");
 
     return NULL;
 }
@@ -319,6 +319,7 @@ void free_block(void *va)
 	}
 	else if(currBlock == first_element)
 	{
+		cprintf("NNNNNNNNNEEEEEEEEEXXXXXXXXTTTTTTTT \n\n");
 		if(nextBlock->is_free == 1)
 		{
 			currBlock->size += nextBlock->size;
@@ -333,6 +334,7 @@ void free_block(void *va)
 	}
 	else if(currBlock == last_element)
 	{
+		cprintf("LLLLLLLLLLLLLLAAAAAAAAAASTTTTTT \n\n");
 		if(prevBlock->is_free == 1)
 		{
 			prevBlock->size += currBlock->size;
