@@ -154,15 +154,37 @@ void free(void* virtual_address)
 	// Write your code here, remove the panic and write your code
 	//panic("free() is not implemented yet...!!");
 
-	if((uint32)virtual_address >= USER_HEAP_START && (uint32)virtual_address <(uint32)sbrk(0)) // block allocator
+	if((uint32)virtual_address >= USER_HEAP_START && (uint32)virtual_address <(uint32)sys_sbrk(0)) // block allocator
 	{
-		cprintf("sbrk ======================= %x\n\n\n\n\n\n" , sbrk(0));
+		//cprintf("sbrk ======================= %x\n\n\n\n\n\n" , sbrk(0));
+
 		free_block(virtual_address);
+
 	}else if ((uint32)virtual_address >=user_hLimit + PAGE_SIZE && (uint32)virtual_address < USER_HEAP_MAX)// page allocator
 	{
 		int index = Uva_to_index(virtual_address);
 		uint32 size = umanga[index] * PAGE_SIZE;
-		umanga[index] *= -1;
+
+		       // numOfFreePages += manga[index];
+				umanga[index] *= -1;
+
+				if (umanga[index - umanga[index]] < 0) // next are free -> merge
+						{
+					int i = index - umanga[index];
+					umanga[index] += umanga[i];
+					umanga[i] = 0;
+				}
+				if (umanga[index - 1] < 0) // prev are free -> merge
+						{
+					umanga[index + umanga[index - 1]] += umanga[index];
+					umanga[index] = 0;
+					int i = umanga[index - 1];
+					umanga[index - 1] = 0;
+					index += i;
+				}
+				umanga[index - umanga[index] - 1] = umanga[index];
+
+		//umanga[index] *= -1;
 		sys_free_user_mem((uint32) virtual_address , size);
 	}else
 		panic("invalid address (free (USER)) \n");

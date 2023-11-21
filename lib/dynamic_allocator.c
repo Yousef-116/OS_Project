@@ -11,7 +11,7 @@
 //==================================================================================//
 //============================== OUR DEFINED FUNCTIONS =============================//
 //==================================================================================//
-
+uint32 sizee ;
 //struct MemBlock_LIST MemoryList;
 
 void setVBlock0(struct BlockMetaData *MetaData)
@@ -184,7 +184,13 @@ void *alloc_block_FF(uint32 size)
     		if(emptySpace >= size)
     		{
     			currBlock->is_free = 0;
+    			sizee = size;
     			split_block(currBlock,size);
+    			//cprintf("returned address .... = %x \n\n" , currBlock + 1);
+    			if(sizee == 1272 || sizee == 1272 - sizeOfMetaData() || sizee == 1272 + sizeOfMetaData() )
+				{
+					cprintf("found in free ============================================================================= \n\n\n");
+				}
     			return (currBlock + 1);
     		}
     	}
@@ -201,11 +207,16 @@ void *alloc_block_FF(uint32 size)
 		meta_data->is_free = 1;
 		LIST_INSERT_TAIL(&MemoryList, meta_data);
 
-    	free_block(ret + sizeOfMetaData()); //to merge
+    	//free_block(ret + sizeOfMetaData()); //to merge
 
     	currBlock = LIST_LAST(&MemoryList);
     	currBlock->is_free = 0;
+    	sizee = size;
     	split_block(currBlock,size);
+    	if(sizee == 1272 || sizee == 1272 - sizeOfMetaData() || sizee == 1272 + sizeOfMetaData() )
+    			{
+    				cprintf("found in alloc ============================================================================= \n\n\n");
+    			}
     	return (currBlock + 1);
 
 //		return alloc_block_FF(size);
@@ -281,6 +292,7 @@ void *alloc_block_NF(uint32 size)
 //===================================================
 void free_block(void *va)
 {
+	//cprintf(" address in free .... = %x \n\n" , va);
 	//TODO: [PROJECT'23.MS1 - #7] [3] DYNAMIC ALLOCATOR - free_block()
 	struct BlockMetaData *currBlock = ((struct BlockMetaData *)va - 1);
 	struct BlockMetaData *first_element = LIST_FIRST(&MemoryList);
@@ -291,60 +303,83 @@ void free_block(void *va)
 
 	if(!(currBlock == first_element || currBlock == last_element))
 	{
+		cprintf("1 \n\n");
 		if(nextBlock->is_free == 1 && prevBlock->is_free == 1) //next and prev  are empty
 		{
-			prevBlock->size += currBlock->size + nextBlock->size;
+			cprintf("2 \n\n");
+			cprintf("curr = %d , prev = %d , next = %d , free next = %d , free prev = %d\n\n" , currBlock->size ,prevBlock->size ,nextBlock->size ,nextBlock->is_free ,prevBlock->is_free  );
+			//print_blocks_list(MemoryList);
+			sizee = prevBlock->size = prevBlock->size + (currBlock->size + nextBlock->size);
+			cprintf(" prev after = %d ,  \n\n" ,prevBlock->size);
+			//print_blocks_list(MemoryList);
 			setVBlock0(nextBlock);
 			setVBlock0(currBlock);
+			//print_blocks_list(MemoryList);
 		}
 		else if (nextBlock->is_free == 0 && prevBlock->is_free == 0)//next and prev  are not empty
 		{
+			cprintf("3 \n\n");
 			currBlock->is_free = 1;
 		}
 		else if(nextBlock->is_free == 1 && prevBlock->is_free == 0)// next is empty
 		{
-			currBlock->size += nextBlock->size;
+			cprintf("4 \n\n");
+			sizee = currBlock->size += nextBlock->size;
 			currBlock->is_free = 1;
 			setVBlock0(nextBlock);
 		}
 		else if(nextBlock->is_free == 0 && prevBlock->is_free == 1) // prev is empty
 		{
-			prevBlock->size += currBlock->size;
+			cprintf("5 \n\n");
+		cprintf("curr = %d , prev = %d \n\n" , currBlock->size ,prevBlock->size);
+	 sizee = 	prevBlock->size += currBlock->size;
+		cprintf(" prev = %d \n\n" ,prevBlock->size);
 			setVBlock0(currBlock);
 		}
 	}
 	else if(currBlock == first_element && currBlock == last_element) // there is one block in the list
 	{
+		cprintf("6 \n\n");
 		currBlock->is_free = 1;
 	}
 	else if(currBlock == first_element)
 	{
-		cprintf("NNNNNNNNNEEEEEEEEEXXXXXXXXTTTTTTTT \n\n");
+		cprintf("7 \n\n");
+	//	cprintf("NNNNNNNNNEEEEEEEEEXXXXXXXXTTTTTTTT \n\n");
 		if(nextBlock->is_free == 1)
 		{
-			currBlock->size += nextBlock->size;
+			cprintf("8 \n\n");
+			sizee = currBlock->size += nextBlock->size;
 			currBlock->is_free = 1;
 			setVBlock0(nextBlock);
 		}
 		else
 		{
+			cprintf("9 \n\n");
 			currBlock->is_free = 1;
 		}
 
 	}
 	else if(currBlock == last_element)
 	{
-		cprintf("LLLLLLLLLLLLLLAAAAAAAAAASTTTTTT \n\n");
+		cprintf("10 \n\n");
+		//cprintf("LLLLLLLLLLLLLLAAAAAAAAAASTTTTTT \n\n");
 		if(prevBlock->is_free == 1)
 		{
-			prevBlock->size += currBlock->size;
+			cprintf("11 \n\n");
+			sizee = prevBlock->size += currBlock->size;
 			setVBlock0(currBlock);
 		}
 		else
 		{
+			cprintf("12 \n\n");
 			currBlock->is_free = 1;
 		}
 	}
+	if(sizee == 1272 || sizee == 1272 - sizeOfMetaData() || sizee == 1272 + sizeOfMetaData() )
+		{
+			cprintf("found in free ============================================================================= \n\n\n");
+		}
 }
 
 //=========================================
