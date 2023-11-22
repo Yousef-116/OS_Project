@@ -158,10 +158,12 @@ void* sbrk(int increment) {
 
 		uint32 diff = new_brk - start;
 		uint32 temp_brk = ROUNDUP(diff, PAGE_SIZE) + start;
+		uint32 *ptr_page_table;
+		struct FrameInfo* ptr_frame_info;
 
 		while (temp_brk <= old_brk) {
-			struct FrameInfo *ptr_frame_info = to_frame_info(
-					temp_brk);
+			ptr_frame_info = get_frame_info(ptr_page_directory,
+					temp_brk, &ptr_page_table) ;
 			if (ptr_frame_info == NULL)
 				panic("\nERROR_6 - cannot find frame to free\n");
 
