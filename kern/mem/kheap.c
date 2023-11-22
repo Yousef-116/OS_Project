@@ -103,7 +103,7 @@ void* sbrk(int increment) {
 	uint32 old_brk = brk;
 	uint32 new_brk = old_brk;
 	if (increment > 0) {
-		new_brk +=increment;
+		new_brk += increment;
 		uint32 diff = new_brk - start;
 
 		if (diff % PAGE_SIZE != 0){
@@ -134,23 +134,22 @@ void* sbrk(int increment) {
 //
 //		brk += increment; // brk += PAGE_SIZE * n
 
-				for (uint32 i = old_brk; i < brk; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
-				{
-					struct FrameInfo *ptr_frame_info = NULL;
+		for (uint32 i = old_brk; i < brk; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
+		{
+			struct FrameInfo *ptr_frame_info = NULL;
 
-					int ret = allocate_frame(&ptr_frame_info);
-					if (ret == E_NO_MEM)
-						panic("\nERROR_2 - cannot allocate frame, no memory\n");
+			int ret = allocate_frame(&ptr_frame_info);
+			if (ret == E_NO_MEM)
+				panic("\nERROR_2 - cannot allocate frame, no memory\n");
 
-					ret = map_frame(ptr_page_directory, ptr_frame_info, i,
-					PERM_WRITEABLE | PERM_PRESENT);
-					if (ret == E_NO_MEM) {
-						free_frame(ptr_frame_info);
-						panic("\nERROR_3 - cannot map to frame, no memory\n");
-					}
+			ret = map_frame(ptr_page_directory, ptr_frame_info, i, PERM_WRITEABLE | PERM_PRESENT);
+			if (ret == E_NO_MEM) {
+				free_frame(ptr_frame_info);
+				panic("\nERROR_3 - cannot map to frame, no memory\n");
+			}
 
-					ptr_frame_info->va = i;
-				}
+			ptr_frame_info->va = i;
+		}
 
 //				struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
 //				meta_data->size = increment;
@@ -288,10 +287,11 @@ void kfree(void* virtual_address) {
 	struct FrameInfo *ptr_frame_info = virtual_address;
 
 	if ((uint32) virtual_address >= start && (uint32) virtual_address <= brk) // block area
-			{
+	{
+		cprintf(">> in kfree block allocator, va = %x\n", virtual_address);
 		return free_block(virtual_address);
-	} else if ((uint32) virtual_address
-			>= (hLimit + PAGE_SIZE)&& (uint32) virtual_address <= KERNEL_HEAP_MAX - PAGE_SIZE) {
+	}
+	else if ((uint32) virtual_address >= (hLimit + PAGE_SIZE)&& (uint32) virtual_address <= KERNEL_HEAP_MAX - PAGE_SIZE) {
 //		int index = ((uint32)virtual_address  - KERNEL_HEAP_START) / PAGE_SIZE;
 		int index = Kva_to_index(virtual_address);
 		//cprintf("index = %d \n" , manga[index]);

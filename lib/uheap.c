@@ -165,24 +165,24 @@ void free(void* virtual_address)
 		int index = Uva_to_index(virtual_address);
 		uint32 size = umanga[index] * PAGE_SIZE;
 
-		       // numOfFreePages += manga[index];
-				umanga[index] *= -1;
+		numOfUnmarkedPages += umanga[index];
+		umanga[index] *= -1;
 
-				if (umanga[index - umanga[index]] < 0) // next are free -> merge
-						{
-					int i = index - umanga[index];
-					umanga[index] += umanga[i];
-					umanga[i] = 0;
-				}
-				if (umanga[index - 1] < 0) // prev are free -> merge
-						{
-					umanga[index + umanga[index - 1]] += umanga[index];
-					umanga[index] = 0;
-					int i = umanga[index - 1];
-					umanga[index - 1] = 0;
-					index += i;
-				}
-				umanga[index - umanga[index] - 1] = umanga[index];
+		if (umanga[index - umanga[index]] < 0) // next are free -> merge
+		{
+			int i = index - umanga[index];
+			umanga[index] += umanga[i];
+			umanga[i] = 0;
+		}
+		if (umanga[index - 1] < 0) // prev are free -> merge
+				{
+			umanga[index + umanga[index - 1]] += umanga[index];
+			umanga[index] = 0;
+			int i = umanga[index - 1];
+			umanga[index - 1] = 0;
+			index += i;
+		}
+		umanga[index - umanga[index] - 1] = umanga[index];
 
 		//umanga[index] *= -1;
 		sys_free_user_mem((uint32) virtual_address , size);

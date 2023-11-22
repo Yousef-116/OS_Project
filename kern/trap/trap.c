@@ -379,13 +379,13 @@ void fault_handler(struct Trapframe *tf)
 			//(e.g. pointing to unmarked user heap page, kernel or wrong access rights),
 			//your code is here
 
-			//cprintf("\nIn check for invalid pointers\n");
+			//cprintf("================ In Validate ================\n");
 
 			// pointing to kernel
 
 			int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
-			cprintf("Permission = %d \n" , perms);
-            cprintf("faulted_va = %x \n" , fault_va);
+//			cprintf("Permission = %x, " , perms);
+//          cprintf("faulted_va = %x \n" , fault_va);
 
 			if (fault_va >= USER_LIMIT){
 				cprintf("\nFaulted VA >= USER_LIMIT\n");

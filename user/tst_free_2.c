@@ -156,7 +156,6 @@ void _main(void)
 		//Free last block (coalesce with previous)
 		blockIndex = numOfAllocs*allocCntPerSize-1;
 		free(startVAs[blockIndex]);
-		cprintf("address ========= %x\n\n\n" , startVAs[blockIndex]);
 		block_size = get_block_size(startVAs[blockIndex-1]);
 		expectedSize = 2*allocSizes[numOfAllocs-1];
 		if (block_size != expectedSize)

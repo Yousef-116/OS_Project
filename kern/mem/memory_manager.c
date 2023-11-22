@@ -325,6 +325,7 @@ void __static_cpt(uint32 *ptr_directory, const uint32 virtual_address, uint32 **
 //
 int map_frame(uint32 *ptr_page_directory, struct FrameInfo *ptr_frame_info, uint32 virtual_address, int perm)
 {
+	//cprintf(">> mapping va = %x\n", virtual_address);
 	// Fill this function in
 	uint32 physical_address = to_physical_address(ptr_frame_info);
 	uint32 *ptr_page_table;
@@ -450,6 +451,7 @@ void unmap_frame(uint32 *ptr_page_directory, uint32 virtual_address)
 	struct FrameInfo* ptr_frame_info = get_frame_info(ptr_page_directory, virtual_address, &ptr_page_table);
 	if( ptr_frame_info != 0 )
 	{
+		//cprintf(">> the unmaped va = %x\n", virtual_address);
 		if (ptr_frame_info->isBuffered && !CHECK_IF_KERNEL_ADDRESS((uint32)virtual_address))
 			cprintf("WARNING: Freeing BUFFERED frame at va %x!!!\n", virtual_address) ;
 		decrement_references(ptr_frame_info);
@@ -462,6 +464,7 @@ void unmap_frame(uint32 *ptr_page_directory, uint32 virtual_address)
 		/*********************************************************************************/
 
 		tlb_invalidate(ptr_page_directory, (void *)virtual_address);
+
 	}
 }
 

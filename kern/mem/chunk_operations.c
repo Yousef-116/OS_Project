@@ -164,12 +164,29 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	/*==========================================================================*/
 	//TODO: [PROJECT'23.MS2 - #12] [2] USER HEAP - free_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */
-	inctst();
-	return;
+	//inctst();
+	//return;
 	/*==========================================================================*/
 
 	// Write your code here, remove the panic and write your code
-	panic("free_user_mem() is not implemented yet...!!");
+	//panic("free_user_mem() is not implemented yet...!!");
+
+	int num_of_req_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
+	//cprintf(">> req pages in free = %d\n" ,num_of_req_pages  ,virtual_address);
+//	cprintf("size WS before = %d \n",e->page_WS_list.size);
+
+	for(uint32 va = virtual_address ; num_of_req_pages > 0 ; --num_of_req_pages , va += PAGE_SIZE)
+	{
+		//cprintf(">> va = %x\n", va);
+		uint32 perm = pt_get_page_permissions(e->env_page_directory, va);
+		if(perm & PERM_PRESENT){
+			unmap_frame(e->env_page_directory , va);
+		}
+		pt_set_page_permissions(e->env_page_directory, va, 0, MARKED);
+		pf_remove_env_page(e,  va);
+		env_page_ws_invalidate( e, va);
+	}
+	//cprintf("size WS after = %d , free frame list after  = %d \n",e->page_WS_list.size , LIST_SIZE(&free_frame_list));
 
 	//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
 
