@@ -449,25 +449,31 @@ void* sys_sbrk(int increment) {
 	 * 		be that sys_sbrk returns (void*) -1 and that the segment break and the process heap are unaffected.
 	 * 		You might have to undo any operations you have done so far in this case.
 	 */
-	struct Env* env = curenv; //the current running Environment to adjust its break limit
 
-	uint32 old_brk = env->dynamic_allocate_USER_heap_break;
+	uint32 old_brk = curenv->dynamic_allocate_USER_heap_break;
 	uint32 new_brk = old_brk;
-	if (increment > 0) {
-
+	if (increment > 0)
+	{
 		new_brk += increment;
-		int diff = new_brk - env->dynamic_allocate_USER_heap_start;
-		if (diff % PAGE_SIZE != 0)
-		{
-			new_brk = ROUNDUP(diff, PAGE_SIZE) + env->dynamic_allocate_USER_heap_start;
+		int diff = new_brk - curenv->dynamic_allocate_USER_heap_start;
+		if (diff % PAGE_SIZE != 0) {
+			new_brk = ROUNDUP(diff, PAGE_SIZE) + curenv->dynamic_allocate_USER_heap_start;
 		}
 
-		if(new_brk >= env->dynamic_allocate_USER_heap_hLimit)
+		if(new_brk > curenv->dynamic_allocate_USER_heap_hLimit)
 			return (void *)-1;
 		else
-			env->dynamic_allocate_USER_heap_break = new_brk;
+			curenv->dynamic_allocate_USER_heap_break = new_brk;
 
-		for (uint32 i = old_brk; i < env->dynamic_allocate_USER_heap_break; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
+
+		// in case the old brk is no in the begin of page
+		uint32 strt = old_brk;
+		diff = strt - curenv->dynamic_allocate_USER_heap_start;
+		if (diff % PAGE_SIZE != 0)
+		{
+			strt = ROUNDUP(diff, PAGE_SIZE) + curenv->dynamic_allocate_USER_heap_start;
+		}
+		for (uint32 i = strt; i < curenv->dynamic_allocate_USER_heap_break; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
 		{
 			struct FrameInfo *ptr_frame_info = NULL;
 
@@ -475,90 +481,55 @@ void* sys_sbrk(int increment) {
 			if (ret == E_NO_MEM)
 				panic("\nERROR_2 - cannot allocate frame, no memory\n");
 
-			ret = map_frame(env->env_page_directory, ptr_frame_info, i, PERM_WRITEABLE | MARKED | PERM_USER);
+			ret = map_frame(curenv->env_page_directory, ptr_frame_info, i, PERM_WRITEABLE | MARKED | PERM_USER);
 			if (ret == E_NO_MEM) {
 				free_frame(ptr_frame_info);
 				panic("\nERROR_3 - cannot map to frame, no memory\n");
 			}
-			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(env, i);
-			LIST_INSERT_TAIL(&(env->page_WS_list), WSElem);
+			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, i);
+			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
 
 			// update page_last_WS_element for FIFO and clock algorithm
-			if(LIST_SIZE(&(env->page_WS_list)) == env->page_WS_max_size)
+			if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
 			{
-				env->page_last_WS_element = LIST_FIRST(&env->page_WS_list);
+				curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
 			}
 			ptr_frame_info->va = i;
 		}
 
-		//cprintf("new break = %x\n", env->dynamic_allocate_USER_heap_break);
-
 		return (void *)old_brk;
-
-		//=============================================================================================
-
-//		increment = ROUNDUP(increment, PAGE_SIZE);
-//
-//		if (env->dynamic_allocate_USER_heap_break + increment
-//				>= env->dynamic_allocate_USER_heap_hLimit)
-//			return (void *)-1;
-//
-//		env->dynamic_allocate_USER_heap_break += increment; // brk += PAGE_SIZE * n
-
-//		for (uint32 i = old_brk; i < env->dynamic_allocate_USER_heap_break; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
-//				{
-//			struct FrameInfo *ptr_frame_info = NULL;
-//
-//			int ret = allocate_frame(&ptr_frame_info);
-//			if (ret == E_NO_MEM)
-//				panic("\nERROR_2 - cannot allocate frame, no memory\n");
-//
-//			ret = map_frame(ptr_page_directory, ptr_frame_info, i,
-//			PERM_WRITEABLE);
-//			if (ret == E_NO_MEM) {
-//				free_frame(ptr_frame_info);
-//				panic("\nERROR_3 - cannot map to frame, no memory\n");
-//			}
-//
-//			ptr_frame_info->va = i;
-//		}
-
-//		struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
-//		meta_data->size = increment;
-//		meta_data->is_free = 1;
-//		LIST_INSERT_TAIL(&MemoryList, meta_data);
-
-//		return (void *) old_brk;
-
-	} else if (increment < 0) {
+	}
+	else if (increment < 0)
+	{
 		//panic("\nERROR_4 - increment < 0 not implemented yet\n");
 
 		//increment = ROUNDDOWN(increment, PAGE_SIZE);
 
-		if (old_brk + increment <= env->dynamic_allocate_USER_heap_start)
+		if (old_brk + increment < curenv->dynamic_allocate_USER_heap_start)
 			return (void *)-1;
 
 		new_brk += increment;
 
 
-		uint32 diff = new_brk - env->dynamic_allocate_USER_heap_start;
-		uint32 temp_brk = ROUNDUP(diff, PAGE_SIZE) + env->dynamic_allocate_USER_heap_start;
+		uint32 diff = new_brk - curenv->dynamic_allocate_USER_heap_start;
+		uint32 temp_brk = ROUNDUP(diff, PAGE_SIZE) + curenv->dynamic_allocate_USER_heap_start;
 
-		while (temp_brk <= old_brk) {
+		while (temp_brk <= old_brk)
+		{
 			struct FrameInfo *ptr_frame_info = to_frame_info(
 					temp_brk);
 			if (ptr_frame_info == NULL)
 				return (void *)-1;
 
-			unmap_frame(env->env_page_directory,
+			unmap_frame(curenv->env_page_directory,
 					temp_brk);
 
-			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(env, temp_brk);
-			LIST_REMOVE(&(env->page_WS_list), WSElem);
+			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, temp_brk);
+			LIST_REMOVE(&(curenv->page_WS_list), WSElem);
 
 			temp_brk += PAGE_SIZE;
 		}
-		env->dynamic_allocate_USER_heap_break = new_brk;
+		curenv->dynamic_allocate_USER_heap_break = new_brk;
 //		for (uint32 i = old_brk - PAGE_SIZE;
 //				i >= env->dynamic_allocate_USER_heap_break; i -= PAGE_SIZE) // remove all frames between old_brk & new brk
 //						{
@@ -582,22 +553,17 @@ void* sys_sbrk(int increment) {
 //		meta_data->size = env->dynamic_allocate_USER_heap_break
 //				- (uint32) meta_data; // last metaData under new brk - size equals space in between
 
-		struct WorkingSetElement *WSElem = LIST_LAST(&(env->page_WS_list));
-				while ((uint32) WSElem
-						>= (uint32) new_brk) // remove any metaData above or equals new brk
-				{
-					LIST_REMOVE(&(env->page_WS_list), WSElem);
-					WSElem = LIST_LAST(&(env->page_WS_list));
-				}
+		struct WorkingSetElement *WSElem = LIST_LAST(&(curenv->page_WS_list));
+		while ((uint32) WSElem >= (uint32) new_brk) // remove any metaData above or equals new brk
+		{
+			LIST_REMOVE(&(curenv->page_WS_list), WSElem);
+			WSElem = LIST_LAST(&(curenv->page_WS_list));
+		}
 
-//				meta_data->size = brk
-//						- (uint32) meta_data; // last metaData under new brk - size equals space in between
-//
+		return (void *) curenv->dynamic_allocate_USER_heap_break;
 
-
-		return (void *) env->dynamic_allocate_USER_heap_break;
-
-	} else // increment == 0
+	}
+	else // increment == 0
 	{
 		return (void *) old_brk;
 	}

@@ -37,8 +37,7 @@ void *kmalloc_and_kfree(void* va, uint32 new_size) {
 	return ret;
 }
 
-int initialize_kheap_dynamic_allocator(uint32 daStart,
-		uint32 initSizeToAllocate, uint32 daLimit) {
+int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate, uint32 daLimit) {
 	//TODO: [PROJECT'23.MS2 - #01] [1] KERNEL HEAP - initialize_kheap_dynamic_allocator()
 	//Initialize the dynamic allocator of kernel heap with the given start address, size & limit
 	//All pages in the given range should be allocated
@@ -100,9 +99,11 @@ void* sbrk(int increment) {
 	//MS2: COMMENT THIS LINE BEFORE START CODING====
 	//return (void*)-1 ;
 	//panic("not implemented yet");
+
 	uint32 old_brk = brk;
 	uint32 new_brk = old_brk;
-	if (increment > 0) {
+	if (increment > 0)
+	{
 		new_brk += increment;
 		uint32 diff = new_brk - start;
 
@@ -110,31 +111,21 @@ void* sbrk(int increment) {
 			new_brk = ROUNDUP(diff, PAGE_SIZE) + start;
 		}
 
-		if (new_brk >= hLimit ){
+		if (new_brk > hLimit ){
 			panic("\nERROR_1 - brk + increment >= hLimit\n");
 		}
 		else {
 			brk = new_brk;
 		}
-//		if (brk % PAGE_SIZE == 1) {
-//			uint32 temp_brk = brk;
-//			temp_brk = ROUNDUP(temp_brk, PAGE_SIZE);
-//
-//			increment -= temp_brk - brk;
-//
-//			if (increment < 0)
-//				increment = 0;
-//			brk = ROUNDUP(
-//					brk, PAGE_SIZE);
-//		}
-//		increment = ROUNDUP(increment, PAGE_SIZE);
 
-//		if (brk + increment >= hLimit)
-//			panic("\nERROR_1 - brk + increment >= hLimit\n");
-//
-//		brk += increment; // brk += PAGE_SIZE * n
 
-		for (uint32 i = old_brk; i < brk; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
+		uint32 strt = old_brk;
+		diff = strt - start;
+		if (diff % PAGE_SIZE != 0)
+		{
+			strt = ROUNDUP(diff, PAGE_SIZE) + start;
+		}
+		for (uint32 i = strt; i < brk; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
 		{
 			struct FrameInfo *ptr_frame_info = NULL;
 
@@ -151,14 +142,11 @@ void* sbrk(int increment) {
 			ptr_frame_info->va = i;
 		}
 
-//				struct BlockMetaData *meta_data = (struct BlockMetaData *) (old_brk);
-//				meta_data->size = increment;
-//				meta_data->is_free = 1;
-//				LIST_INSERT_TAIL(&MemoryList, meta_data);
 
 		return (void *) old_brk;
 	}
-	else if (increment < 0) {
+	else if (increment < 0)
+	{
 		//panic("\nERROR_4 - increment < 0 not implemented yet\n");
 
 		//increment = ROUNDDOWN(increment, PAGE_SIZE);
@@ -206,7 +194,8 @@ void* sbrk(int increment) {
 
 		return (void *) new_brk;
 
-	} else // increment == 0
+	}
+	else // increment == 0
 	{
 		return (void *) old_brk;
 	}

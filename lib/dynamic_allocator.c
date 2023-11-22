@@ -11,7 +11,6 @@
 //==================================================================================//
 //============================== OUR DEFINED FUNCTIONS =============================//
 //==================================================================================//
-uint32 sizee ;
 //struct MemBlock_LIST MemoryList;
 
 void setVBlock0(struct BlockMetaData *MetaData)
@@ -162,9 +161,10 @@ void *alloc_block_FF(uint32 size)
     //panic("alloc_block_FF is not implemented yet");
     if(size==0) return NULL;
 
+    //cprintf(">> allocate size = %d\n", size+16);
     if (!is_initialized)
     {
-    	//cprintf("block allocator initializing\n");
+//    	cprintf("block allocator initializing\n");
 		uint32 required_size = size + sizeOfMetaData();
 		uint32 da_start = (uint32)sbrk(required_size);
 		//get new break since it's page aligned! thus, the size can be more than the required one
@@ -184,13 +184,7 @@ void *alloc_block_FF(uint32 size)
     		if(emptySpace >= size)
     		{
     			currBlock->is_free = 0;
-    			sizee = size;
     			split_block(currBlock,size);
-    			//cprintf("returned address .... = %x \n\n" , currBlock + 1);
-//    			if(sizee == 1272 || sizee == 1272 - sizeOfMetaData() || sizee == 1272 + sizeOfMetaData() )
-//				{
-//					cprintf("found in free ============================================================================= \n\n\n");
-//				}
     			return (currBlock + 1);
     		}
     	}
@@ -199,29 +193,24 @@ void *alloc_block_FF(uint32 size)
     void * ret = sbrk(size);
     if(ret != (void*)-1)
     {
+		//print_blocks_list(MemoryList);
     	//cprintf("\nsbrk called\n");
-    	//cprintf(" ...... ........... List last size = %d \n" ,LIST_LAST(&MemoryList)->size);
 
 		struct BlockMetaData *meta_data = (struct BlockMetaData *) (ret);
 		meta_data->size = sbrk(0) - ret;
 		meta_data->is_free = 1;
 		LIST_INSERT_TAIL(&MemoryList, meta_data);
 
-    	//free_block(ret + sizeOfMetaData()); //to merge
+//    	free_block(ret + sizeOfMetaData()); //to merge if prev is free
 
     	currBlock = LIST_LAST(&MemoryList);
     	currBlock->is_free = 0;
-    	sizee = size;
     	split_block(currBlock,size);
-//    	if(sizee == 1272 || sizee == 1272 - sizeOfMetaData() || sizee == 1272 + sizeOfMetaData() )
-//		{
-//			cprintf("found in alloc ============================================================================= \n\n\n");
-//		}
+
     	return (currBlock + 1);
 
-//		return alloc_block_FF(size);
     }
-    //cprintf("\n======> sbrk called and failed\n");
+    cprintf("\n======> sbrk called and failed\n");
 
     return NULL;
 }
@@ -303,83 +292,61 @@ void free_block(void *va)
 
 	if(!(currBlock == first_element || currBlock == last_element))
 	{
-//		cprintf("1 \n\n");
 		if(nextBlock->is_free == 1 && prevBlock->is_free == 1) //next and prev  are empty
 		{
-//			cprintf("2 \n\n");
-//			cprintf("curr = %d , prev = %d , next = %d , free next = %d , free prev = %d\n\n" , currBlock->size ,prevBlock->size ,nextBlock->size ,nextBlock->is_free ,prevBlock->is_free  );
-			//print_blocks_list(MemoryList);
-			sizee = prevBlock->size = prevBlock->size + (currBlock->size + nextBlock->size);
-//			cprintf(" prev after = %d ,  \n\n" ,prevBlock->size);
-			//print_blocks_list(MemoryList);
+			prevBlock->size += (currBlock->size + nextBlock->size);
 			setVBlock0(nextBlock);
 			setVBlock0(currBlock);
-			//print_blocks_list(MemoryList);
 		}
 		else if (nextBlock->is_free == 0 && prevBlock->is_free == 0)//next and prev  are not empty
 		{
-//			cprintf("3 \n\n");
 			currBlock->is_free = 1;
 		}
 		else if(nextBlock->is_free == 1 && prevBlock->is_free == 0)// next is empty
 		{
-//			cprintf("4 \n\n");
-			sizee = currBlock->size += nextBlock->size;
+			currBlock->size += nextBlock->size;
 			currBlock->is_free = 1;
 			setVBlock0(nextBlock);
 		}
 		else if(nextBlock->is_free == 0 && prevBlock->is_free == 1) // prev is empty
 		{
-			//cprintf("5 \n\n");
-			//cprintf("curr = %d , prev = %d \n\n" , currBlock->size ,prevBlock->size);
-			sizee = prevBlock->size += currBlock->size;
-			//cprintf(" prev = %d \n\n" ,prevBlock->size);
+			prevBlock->size += currBlock->size;
 			setVBlock0(currBlock);
 		}
 	}
 	else if(currBlock == first_element && currBlock == last_element) // there is one block in the list
 	{
-		//cprintf("6 \n\n");
 		currBlock->is_free = 1;
 	}
 	else if(currBlock == first_element)
 	{
-		//cprintf("7 \n\n");
-		//cprintf("NNNNNNNNNEEEEEEEEEXXXXXXXXTTTTTTTT \n\n");
 		if(nextBlock->is_free == 1)
 		{
-			//cprintf("8 \n\n");
-			sizee = currBlock->size += nextBlock->size;
+			currBlock->size += nextBlock->size;
 			currBlock->is_free = 1;
 			setVBlock0(nextBlock);
 		}
 		else
 		{
-			//cprintf("9 \n\n");
 			currBlock->is_free = 1;
 		}
 
 	}
 	else if(currBlock == last_element)
 	{
-		//cprintf("10 \n\n");
-		//cprintf("LLLLLLLLLLLLLLAAAAAAAAAASTTTTTT \n\n");
 		if(prevBlock->is_free == 1)
 		{
-			//cprintf("11 \n\n");
-			sizee = prevBlock->size += currBlock->size;
+			//cprintf(">> is last and prev is free, size before = %d, ", currBlock->size);
+			prevBlock->size += currBlock->size;
 			setVBlock0(currBlock);
+			//cprintf("size after = %d\n", prevBlock->size);
 		}
 		else
 		{
-			//cprintf("12 \n\n");
+			//cprintf(">> is last and prev is not free, size before = %d, ", currBlock->size);
 			currBlock->is_free = 1;
 		}
 	}
-//	if(sizee == 1272 || sizee == 1272 - sizeOfMetaData() || sizee == 1272 + sizeOfMetaData() )
-//	{
-//		cprintf("found in free ============================================================================= \n\n\n");
-//	}
 }
 
 //=========================================
