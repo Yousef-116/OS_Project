@@ -164,13 +164,13 @@ void *alloc_block_FF(uint32 size)
 
     if (!is_initialized)
     {
-    	cprintf("block allocator initializing\n");
+    	//cprintf("block allocator initializing\n");
 		uint32 required_size = size + sizeOfMetaData();
 		uint32 da_start = (uint32)sbrk(required_size);
 		//get new break since it's page aligned! thus, the size can be more than the required one
 		uint32 da_break = (uint32)sbrk(0);
 		initialize_dynamic_allocator(da_start, da_break - da_start);
-    	cprintf("block allocator initialized\n");
+    	//cprintf("block allocator initialized\n");
     }
 
 

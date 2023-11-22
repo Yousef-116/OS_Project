@@ -288,7 +288,7 @@ void kfree(void* virtual_address) {
 
 	if ((uint32) virtual_address >= start && (uint32) virtual_address <= brk) // block area
 	{
-		cprintf(">> in kfree block allocator, va = %x\n", virtual_address);
+		//cprintf(">> in kfree block allocator, va = %x\n", virtual_address);
 		return free_block(virtual_address);
 	}
 	else if ((uint32) virtual_address >= (hLimit + PAGE_SIZE)&& (uint32) virtual_address <= KERNEL_HEAP_MAX - PAGE_SIZE) {
