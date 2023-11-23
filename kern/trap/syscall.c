@@ -466,12 +466,12 @@ void* sys_sbrk(int increment) {
 			curenv->dynamic_allocate_USER_heap_break = new_brk;
 
 		uint32 strt = old_brk;
-		diff = strt - start;
+		diff = strt - curenv->dynamic_allocate_USER_heap_start;
 		if (diff % PAGE_SIZE != 0)
 		{
-			strt = ROUNDUP(diff, PAGE_SIZE) + start;
+			strt = ROUNDUP(diff, PAGE_SIZE) + curenv->dynamic_allocate_USER_heap_start;
 		}
-		for (uint32 va = strt; va < brk; va += PAGE_SIZE) // allocate all frames between old_brk & new brk
+		for (uint32 va = strt; va < curenv->dynamic_allocate_USER_heap_break; va += PAGE_SIZE) // allocate all frames between old_brk & new brk
 		{
 			uint32* ptr_page_table = NULL;
 			int ret = get_page_table(curenv->env_page_directory, va, &ptr_page_table);
