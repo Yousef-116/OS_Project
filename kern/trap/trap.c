@@ -400,8 +400,8 @@ void fault_handler(struct Trapframe *tf)
 			}
 
 
-			// Unmarked and in Page allocator
-			if (!(perms & MARKED) && (fault_va >= faulted_env->dynamic_allocate_USER_heap_hLimit + PAGE_SIZE && fault_va < USER_HEAP_MAX)){
+			// Unmarked and in user heap
+			if (!(perms & MARKED) && (fault_va >= faulted_env->dynamic_allocate_USER_heap_start && fault_va < USER_HEAP_MAX)){
 				cprintf("\nFaulted VA failed due to marked permission\n") ;
 				sched_kill_env(faulted_env->env_id);
 			}

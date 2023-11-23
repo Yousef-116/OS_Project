@@ -182,7 +182,7 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 		if(perm & PERM_PRESENT){
 			unmap_frame(e->env_page_directory , va);
 		}
-		pt_set_page_permissions(e->env_page_directory, va, 0, MARKED);
+		pt_set_page_permissions(e->env_page_directory, va, 0x000, MARKED);
 		pf_remove_env_page(e,  va);
 		env_page_ws_invalidate( e, va);
 	}

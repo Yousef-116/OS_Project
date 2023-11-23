@@ -465,6 +465,23 @@ void* sys_sbrk(int increment) {
 		else
 			curenv->dynamic_allocate_USER_heap_break = new_brk;
 
+		uint32 strt = old_brk;
+		diff = strt - start;
+		if (diff % PAGE_SIZE != 0)
+		{
+			strt = ROUNDUP(diff, PAGE_SIZE) + start;
+		}
+		for (uint32 va = strt; va < brk; va += PAGE_SIZE) // allocate all frames between old_brk & new brk
+		{
+			uint32* ptr_page_table = NULL;
+			int ret = get_page_table(curenv->env_page_directory, va, &ptr_page_table);
+			if(ret == TABLE_NOT_EXIST){
+				//cprintf("create page table\n");
+				create_page_table(curenv->env_page_directory, va);
+			}
+			pt_set_page_permissions(curenv->env_page_directory, va, MARKED | PERM_WRITEABLE, 0x000);
+		}
+
 		return (void *)old_brk;
 	}
 	else if (increment < 0)
@@ -482,12 +499,13 @@ void* sys_sbrk(int increment) {
 		while (temp_brk < old_brk)
 		{
 			ptr_frame_info = get_frame_info(curenv->env_page_directory, temp_brk, &ptr_page_table);
-			if (ptr_frame_info == NULL)
+			if (ptr_frame_info == 0)
 				return (void *)-1;
 
 			unmap_frame(curenv->env_page_directory, temp_brk);
 			env_page_ws_invalidate(curenv, temp_brk);
 			temp_brk += PAGE_SIZE;
+			pt_set_page_permissions(curenv->env_page_directory, temp_brk, 0x000, MARKED);
 		}
 		curenv->dynamic_allocate_USER_heap_break = new_brk;
 
