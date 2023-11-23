@@ -92,7 +92,7 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // Ori
 
 
 inline void remove_ws_element_O1(struct Env* e, uint32 virtual_address){
-	struct WorkingSetElement *wse = e->UHva_to_PtrWSelem[(ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE];
+	struct WorkingSetElement *wse = UHva_to_PtrWSelem[(ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE];
 	//cprintf("\nidx = %d , wse = %x\n", (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE, wse);
 	if(wse != NULL){
 		if (e->page_last_WS_element == wse)

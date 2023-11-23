@@ -32,6 +32,9 @@ uint32 _PageRepAlgoType;
 
 extern uint8 bypassInstrLength ;
 
+// array defined in MS2 - our-defined
+struct WorkingSetElement* UHva_to_PtrWSelem[(USER_HEAP_MAX - USER_HEAP_START) / PAGE_SIZE]; // array holds the ws_element of each USER HEAP va
+
 /******************************/
 /*	FUNCTIONS				  */
 /******************************/
