@@ -124,6 +124,8 @@ struct Env {
 	//struct WorkingSetElement* ptr_pageWorkingSet;
 	struct WS_List page_WS_list ;					//List of WS elements
 	struct WorkingSetElement* page_last_WS_element;	//ptr to last inserted WS element
+	struct WorkingSetElement* UHva_to_PtrWSelem[(USER_HEAP_MAX - USER_HEAP_START) / PAGE_SIZE]; // array holds the ws_element of each USER HEAP va
+	//struct WorkingSetElement* USva_to_PtrWSelem[(USTACKTOP - USTACKBOTTOM)/PAGE_SIZE]; // array holds the ws_element of each USER STACK va (not used!)
 #else
 	struct WorkingSetElement ptr_pageWorkingSet[__PWS_MAX_SIZE];
 	//uint32 page_last_WS_index;

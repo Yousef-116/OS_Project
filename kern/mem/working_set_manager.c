@@ -28,8 +28,8 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
 	new_element->prev_next_info.le_next = NULL;
 	return new_element;
 }
-
-inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
+/*
+inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // Original function
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
@@ -88,6 +88,64 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 		}
 	}
 }
+*/
+
+
+inline void remove_ws_element_O1(struct Env* e, uint32 virtual_address){
+	struct WorkingSetElement *wse = e->UHva_to_PtrWSelem[(ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE];
+	//cprintf("\nidx = %d , wse = %x\n", (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE, wse);
+	if(wse != NULL){
+		if (e->page_last_WS_element == wse)
+		{
+			e->page_last_WS_element = LIST_NEXT(wse);
+		}
+		LIST_REMOVE(&(e->page_WS_list), wse);
+		kfree(wse);
+	}
+}
+
+inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // modified function - O(1) (not completely O(1))
+{
+	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
+	{
+		bool found = 0;
+		struct WorkingSetElement *ptr_WS_element = NULL;
+		LIST_FOREACH(ptr_WS_element, &(e->ActiveList))
+		{
+			if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
+			{
+				struct WorkingSetElement* ptr_tmp_WS_element = LIST_FIRST(&(e->SecondList));
+				unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
+				LIST_REMOVE(&(e->ActiveList), ptr_WS_element);
+				if(ptr_tmp_WS_element != NULL)
+				{
+					LIST_REMOVE(&(e->SecondList), ptr_tmp_WS_element);
+					LIST_INSERT_TAIL(&(e->ActiveList), ptr_tmp_WS_element);
+					pt_set_page_permissions(e->env_page_directory, ptr_tmp_WS_element->virtual_address, PERM_PRESENT, 0);
+				}
+				found = 1;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			ptr_WS_element = NULL;
+			LIST_FOREACH(ptr_WS_element, &(e->SecondList))
+			{
+				if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
+				{
+					unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
+					LIST_REMOVE(&(e->SecondList), ptr_WS_element);
+
+					kfree(ptr_WS_element);
+				}
+			}
+		}
+	}
+	else remove_ws_element_O1(e, virtual_address);
+}
+
 
 void env_page_ws_print(struct Env *e)
 {

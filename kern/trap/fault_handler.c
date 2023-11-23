@@ -107,6 +107,11 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
 			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
 
+			if(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) // In USER HEAP boundaries
+			{
+				curenv->UHva_to_PtrWSelem[(ROUNDDOWN(fault_va, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = WSElem;
+			}
+
 			// update page_last_WS_element for FIFO and clock algorithm
 			if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
 			{

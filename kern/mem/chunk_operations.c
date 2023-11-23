@@ -189,7 +189,7 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	//cprintf("size WS after = %d , free frame list after  = %d \n",e->page_WS_list.size , LIST_SIZE(&free_frame_list));
 
 	//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
-
+	//BONUS#2 - DONE
 }
 
 //=====================================
