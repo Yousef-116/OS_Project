@@ -381,12 +381,12 @@ void fault_handler(struct Trapframe *tf)
 
 			//cprintf("================ In Validate ================\n");
 
-			// pointing to kernel
 
 			int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
 //			cprintf("Permission = %x, " , perms);
 //          cprintf("faulted_va = %x \n" , fault_va);
 
+			// pointing to kernel
 			if (fault_va >= USER_LIMIT){
 				cprintf("\nFaulted VA >= USER_LIMIT\n");
 				sched_kill_env(faulted_env->env_id);
@@ -400,12 +400,11 @@ void fault_handler(struct Trapframe *tf)
 			}
 
 
-			// Unmarked
-			if (!(perms & MARKED) && (fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX)){
+			// Unmarked and in Page allocator
+			if (!(perms & MARKED) && (fault_va >= faulted_env->dynamic_allocate_USER_heap_hLimit + PAGE_SIZE && fault_va < USER_HEAP_MAX)){
 				cprintf("\nFaulted VA failed due to marked permission\n") ;
 				sched_kill_env(faulted_env->env_id);
 			}
-
 
 
 //			// Not in Page File, Not Stack & Not Heap

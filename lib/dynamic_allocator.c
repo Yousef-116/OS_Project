@@ -109,7 +109,20 @@ void print_blocks_list(struct MemBlock_LIST list)
 		cprintf("(size: %d, isFree: %d)\n", blk->size, blk->is_free) ;
 	}
 	cprintf("=========================================\n");
+}
 
+void print_blocks_list_tail(struct MemBlock_LIST list, int num)
+{
+	cprintf("=========================================\n");
+	struct BlockMetaData* blk ;
+	int ctr = 1;
+	cprintf("\nDynAlloc Blocks List:\n");
+	for(blk = LIST_LAST(&list); ctr <= num-1 ; blk = LIST_PREV(blk), ctr++);
+	for(; blk != NULL; blk = LIST_NEXT(blk))
+	{
+		cprintf("(size: %d, isFree: %d)\n", blk->size, blk->is_free) ;
+	}
+	cprintf("=========================================\n");
 }
 
 //
@@ -190,23 +203,28 @@ void *alloc_block_FF(uint32 size)
     	}
     }
 
-    void * ret = sbrk(size);
-    if(ret != (void*)-1)
+    void * old_brk = sbrk(size);
+    if(old_brk != (void*)-1)
     {
-		//print_blocks_list(MemoryList);
-    	//cprintf("\nsbrk called\n");
-
-		struct BlockMetaData *meta_data = (struct BlockMetaData *) (ret);
-		meta_data->size = sbrk(0) - ret;
-		meta_data->is_free = 1;
-		LIST_INSERT_TAIL(&MemoryList, meta_data);
-
-//    	free_block(ret + sizeOfMetaData()); //to merge if prev is free
+//		if(LIST_LAST(&MemoryList)->is_free == 1)
+//		{
+//			LIST_LAST(&MemoryList)->size += (sbrk(0) - old_brk);
+//		}
+//		else
+    	if(1)
+		{
+			struct BlockMetaData *meta_data = (struct BlockMetaData *)(old_brk);
+			meta_data->size = sbrk(0) - old_brk;
+			meta_data->is_free = 1;
+			LIST_INSERT_TAIL(&MemoryList, meta_data);
+		}
 
     	currBlock = LIST_LAST(&MemoryList);
     	currBlock->is_free = 0;
     	split_block(currBlock,size);
 
+
+    	//print_blocks_list_tail(MemoryList, 10);
     	return (currBlock + 1);
 
     }

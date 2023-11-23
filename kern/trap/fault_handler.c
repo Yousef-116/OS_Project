@@ -106,12 +106,12 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 
 			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
 			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
-		}
 
-		// update page_last_WS_element for FIFO and clock algorithm
-		if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
-		{
-			curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
+			// update page_last_WS_element for FIFO and clock algorithm
+			if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
+			{
+				curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
+			}
 		}
 
 		//cprintf("========================================== \n\n");

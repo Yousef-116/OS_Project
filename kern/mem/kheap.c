@@ -161,38 +161,23 @@ void* sbrk(int increment) {
 		uint32 *ptr_page_table;
 		struct FrameInfo* ptr_frame_info;
 
-		while (temp_brk <= old_brk) {
-			ptr_frame_info = get_frame_info(ptr_page_directory,
-					temp_brk, &ptr_page_table) ;
+		while (temp_brk < old_brk) {
+			ptr_frame_info = get_frame_info(ptr_page_directory, temp_brk, &ptr_page_table);
 			if (ptr_frame_info == NULL)
 				panic("\nERROR_6 - cannot find frame to free\n");
 
-			unmap_frame(ptr_page_directory,
-					temp_brk);
+			unmap_frame(ptr_page_directory, temp_brk);
 			temp_brk += PAGE_SIZE;
 		}
-//				for (uint32 i = old_brk - PAGE_SIZE;
-//						i >= brk; i -= PAGE_SIZE) // remove all frames between old_brk & new brk
-//								{
-//					struct FrameInfo *ptr_frame_info = to_frame_info(
-//							brk);
-//					if (ptr_frame_info == NULL)
-//						panic("\nERROR_6 - cannot find frame to free\n");
-//
-//					unmap_frame(ptr_page_directory,
-//							brk);
-//				}
 
 		struct BlockMetaData *meta_data = LIST_LAST(&MemoryList);
-		while ((uint32) meta_data
-				>= (uint32) new_brk) // remove any metaData above or equals new brk
+		while ((uint32) meta_data >= (uint32) new_brk) // remove any metaData above or equals new brk
 		{
 			LIST_REMOVE(&MemoryList, meta_data);
 			meta_data = LIST_LAST(&MemoryList);
 		}
 
-		meta_data->size = new_brk
-				- (uint32) meta_data; // last metaData under new brk - size equals space in between
+		meta_data->size = new_brk - (uint32) meta_data; // last metaData under new brk - size equals space in between
 
 		return (void *) new_brk;
 
