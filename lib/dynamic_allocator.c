@@ -228,7 +228,7 @@ void *alloc_block_FF(uint32 size)
     	return (currBlock + 1);
 
     }
-    cprintf("\n======> sbrk called and failed\n");
+    // cprintf("\n======> sbrk called and failed\n");
 
     return NULL;
 }
