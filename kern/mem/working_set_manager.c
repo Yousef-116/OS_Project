@@ -91,20 +91,24 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // Ori
 */
 
 
-inline void remove_ws_element_O1(struct Env* e, uint32 virtual_address){
-	struct WorkingSetElement *wse = UHva_to_PtrWSelem[(ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE];
+inline void remove_ws_element_O1(struct Env* e, uint32 virtual_address)
+{
+	int index = (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE;
+	struct WorkingSetElement *wse = UHva_to_PtrWSelem[index];
 	//cprintf("\nidx = %d , wse = %x\n", (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE, wse);
-	if(wse != NULL){
+	if(wse != NULL)
+	{
 		if (e->page_last_WS_element == wse)
 		{
 			e->page_last_WS_element = LIST_NEXT(wse);
 		}
 		LIST_REMOVE(&(e->page_WS_list), wse);
 		kfree(wse);
+//		UHva_to_PtrWSelem[index] = NULL;
 	}
 }
 
-inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // modified function - O(1) (not completely O(1))
+inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
@@ -143,9 +147,26 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // mod
 			}
 		}
 	}
-	else remove_ws_element_O1(e, virtual_address);
-}
+	else
+	{
+		struct WorkingSetElement *wse;
+		LIST_FOREACH(wse, &(e->page_WS_list))
+		{
+			if(ROUNDDOWN(wse->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
+			{
+				if (e->page_last_WS_element == wse)
+				{
+					e->page_last_WS_element = LIST_NEXT(wse);
+				}
+				LIST_REMOVE(&(e->page_WS_list), wse);
 
+				kfree(wse);
+
+				break;
+			}
+		}
+	}
+}
 
 void env_page_ws_print(struct Env *e)
 {

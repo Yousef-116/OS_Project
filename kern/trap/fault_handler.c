@@ -87,10 +87,10 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 	{
 		//cprintf("placement ========================== \n");
 		bool alloc = 1;
-		int ret = pf_read_env_page(curenv, (void*)fault_va);
-		if(ret == E_PAGE_NOT_EXIST_IN_PF)
+		if(!(fault_va >= USTACKBOTTOM && fault_va < USTACKTOP) && !(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX))
 		{
-			if(!(fault_va >= USTACKBOTTOM && fault_va < USTACKTOP) && !(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX))
+			int ret = pf_read_env_page(curenv, (void*)fault_va);
+			if(ret == E_PAGE_NOT_EXIST_IN_PF)
 			{
 				alloc = 0;
 				cprintf("Placement kill\n");
@@ -106,12 +106,12 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 
 			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
 			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
+			UHva_to_PtrWSelem[(ROUNDDOWN(fault_va, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = WSElem;
 
-
-			if(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) // In USER HEAP boundaries
-			{
-				UHva_to_PtrWSelem[(ROUNDDOWN(fault_va, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = WSElem;
-			}
+//			if(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) // In USER HEAP boundaries
+//			{
+//				UHva_to_PtrWSelem[(ROUNDDOWN(fault_va, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = WSElem;
+//			}
 
 			// update page_last_WS_element for FIFO and clock algorithm
 			if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)

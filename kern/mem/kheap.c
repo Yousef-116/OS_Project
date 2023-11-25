@@ -5,9 +5,9 @@
 #include "memory_manager.h"
 
 uint32 numOfFreePages;
-const int manga_size = (KERNEL_HEAP_MAX - KERNEL_HEAP_START) / PAGE_SIZE;
-int manga_strt;
-int manga[(KERNEL_HEAP_MAX - KERNEL_HEAP_START) / PAGE_SIZE + 1] = { };
+const int kmanga_size = (KERNEL_HEAP_MAX - KERNEL_HEAP_START) / PAGE_SIZE;
+int kmanga_strt;
+int kmanga[(KERNEL_HEAP_MAX - KERNEL_HEAP_START) / PAGE_SIZE + 1] = { };
 
 int Kva_to_index(void* va) {
 	return ((uint32) va - KERNEL_HEAP_START) / PAGE_SIZE;
@@ -17,13 +17,12 @@ void* index_to_Kva(int index) {
 	return (void *) (index * PAGE_SIZE + KERNEL_HEAP_START);
 }
 
-void myAlloc_pages(void* virtual_address, int num_of_req_pages) {
-	for (uint32 va = (uint32) virtual_address; num_of_req_pages > 0; va +=
-	PAGE_SIZE, --num_of_req_pages) {
+void myAlloc_pages(void* virtual_address, int num_of_req_pages)
+{
+	for (uint32 va = (uint32) virtual_address; num_of_req_pages > 0; va += PAGE_SIZE, --num_of_req_pages) {
 		struct FrameInfo *ptr_frame_info;
 		int ret = allocate_frame(&ptr_frame_info);
-		ret = map_frame(ptr_page_directory, ptr_frame_info, va,
-		PERM_PRESENT | PERM_WRITEABLE);
+		ret = map_frame(ptr_page_directory, ptr_frame_info, va, PERM_PRESENT | PERM_WRITEABLE);
 		ptr_frame_info->va = va;
 	}
 }
@@ -56,9 +55,9 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 
 		hLimit = daLimit;
 		numOfFreePages = (KERNEL_HEAP_MAX - hLimit - PAGE_SIZE) / PAGE_SIZE;
-		manga_strt = (hLimit + PAGE_SIZE - KERNEL_HEAP_START) / PAGE_SIZE;
-		manga[manga_strt] = -(manga_size - manga_strt);
-		manga[manga_size - 1] = manga[manga_strt];  // at the end of Brothers
+		kmanga_strt = (hLimit + PAGE_SIZE - KERNEL_HEAP_START) / PAGE_SIZE;
+		kmanga[kmanga_strt] = -(kmanga_size - kmanga_strt);
+		kmanga[kmanga_size - 1] = kmanga[kmanga_strt];  // at the end of Brothers
 
 		for (uint32 va = daStart; va <= brk; va += PAGE_SIZE)
 		{
@@ -70,9 +69,6 @@ int initialize_kheap_dynamic_allocator(uint32 daStart, uint32 initSizeToAllocate
 		}
 
 		initialize_dynamic_allocator(daStart, initSizeToAllocate);
-//		cprintf("KheapMax - hLimit - 4K = %x\n", KERNEL_HEAP_MAX - hLimit - PAGE_SIZE);
-//		cprintf("(KheapMax - hLimit - 4K)/PAGE_SIZE = %d\n", (KERNEL_HEAP_MAX - hLimit - PAGE_SIZE)/PAGE_SIZE);
-//		cprintf("NUM_OF_KHEAP_PAGES = %d\n", NUM_OF_KHEAP_PAGES);
 		return 0;
 	}
 
@@ -189,7 +185,8 @@ void* sbrk(int increment) {
 
 }
 
-void* kmalloc(unsigned int size) {
+void* kmalloc(unsigned int size)
+{
 	//TODO: [PROJECT'23.MS2 - #03] [1] KERNEL HEAP - kmalloc()
 	//refer to the project presentation and documentation for details
 	// use "isKHeapPlacementStrategyFIRSTFIT() ..." functions to check the current strategy
@@ -198,43 +195,48 @@ void* kmalloc(unsigned int size) {
 	//kpanic_into_prompt("kmalloc() is not implemented yet...!!");
 
 	//cprintf("size = %u\n", size);
-	if (isKHeapPlacementStrategyFIRSTFIT()) {
+	if (isKHeapPlacementStrategyFIRSTFIT())
+	{
 		if (size <= DYN_ALLOC_MAX_BLOCK_SIZE) {
 			//cprintf("dynamic allocator\n");
 			return alloc_block_FF(size);
 		}
 
-		uint32 _size = size;
-		int num_of_req_pages = ROUNDUP(_size, PAGE_SIZE) / PAGE_SIZE;
+		int num_of_req_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
 		if (num_of_req_pages > numOfFreePages) {
 			//cprintf("not enought pages: %d < %d\n",numOfFreePages, num_of_req_pages);
 			return NULL;
 		}
 
-		uint32 *ptr_page_table = NULL;
 		void* _1stVa;
 		int index = -1;
-		for (int i = manga_strt; i < manga_size;) {
-			if (manga[i] < 0) {
-				if (-manga[i] == num_of_req_pages) {
-					manga[i - manga[i] - 1] = 0;  // at the end of Brothers
-					manga[i] = num_of_req_pages;
+		for (int i = kmanga_strt; i < kmanga_size;) {
+			if (kmanga[i] < 0)
+			{
+				if (-kmanga[i] == num_of_req_pages)
+				{
+					kmanga[i - kmanga[i] - 1] = 0;  // at the end of Brothers
+					kmanga[i] = num_of_req_pages;
 					index = i;
 					break;
-				} else if (-manga[i] > num_of_req_pages) {
-					manga[i + num_of_req_pages] = manga[i] + num_of_req_pages;
-					manga[i + num_of_req_pages - manga[i + num_of_req_pages] - 1] =
-							manga[i + num_of_req_pages];
-
-					manga[i] = num_of_req_pages;
-
-					index = i;
-					break;
-				} else {
-					i -= manga[i];
 				}
-			} else {
-				i += manga[i];
+				else if (-kmanga[i] > num_of_req_pages)
+				{
+					kmanga[i + num_of_req_pages] = kmanga[i] + num_of_req_pages;
+					kmanga[i + num_of_req_pages - kmanga[i + num_of_req_pages] - 1] =
+							kmanga[i + num_of_req_pages];
+
+					kmanga[i] = num_of_req_pages;
+
+					index = i;
+					break;
+				}
+				else {
+					i -= kmanga[i];
+				}
+			}
+			else {
+				i += kmanga[i];
 			}
 		}
 
@@ -242,7 +244,7 @@ void* kmalloc(unsigned int size) {
 			return NULL;
 		}
 
-		//manga[index] = num_of_req_pages;
+		//kmanga[index] = num_of_req_pages;
 		//_1stVa = index*PAGE_SIZE + start;
 		_1stVa = index_to_Kva(index);
 		numOfFreePages -= num_of_req_pages;
@@ -267,38 +269,38 @@ void kfree(void* virtual_address) {
 		//cprintf(">> in kfree block allocator, va = %x\n", virtual_address);
 		return free_block(virtual_address);
 	}
-	else if ((uint32) virtual_address >= (hLimit + PAGE_SIZE)&& (uint32) virtual_address <= KERNEL_HEAP_MAX - PAGE_SIZE) {
+	else if ((uint32) virtual_address >= (hLimit + PAGE_SIZE)&& (uint32) virtual_address <= KERNEL_HEAP_MAX - PAGE_SIZE)
+	{
 //		int index = ((uint32)virtual_address  - KERNEL_HEAP_START) / PAGE_SIZE;
 		int index = Kva_to_index(virtual_address);
-		//cprintf("index = %d \n" , manga[index]);
-		uint32 noOfBrothers = manga[index];
+		//cprintf("index = %d \n" , kmanga[index]);
+		uint32 noOfBrothers = kmanga[index];
 
 		if (noOfBrothers == 0)
 			return;
 
-		for (uint32 va = (uint32) virtual_address; noOfBrothers > 0;
-				--noOfBrothers, va += PAGE_SIZE) {
+		for (uint32 va = (uint32) virtual_address; noOfBrothers > 0; --noOfBrothers, va += PAGE_SIZE) {
 			unmap_frame(ptr_page_directory, va);
 		}
 
-		numOfFreePages += manga[index];
-		manga[index] *= -1;
+		numOfFreePages += kmanga[index];
+		kmanga[index] *= -1;
 
-		if (manga[index - manga[index]] < 0) // next are free -> merge
-				{
-			int i = index - manga[index];
-			manga[index] += manga[i];
-			manga[i] = 0;
+		if (kmanga[index - kmanga[index]] < 0) // next are free -> merge
+		{
+			int i = index - kmanga[index];
+			kmanga[index] += kmanga[i];
+			kmanga[i] = 0;
 		}
-		if (manga[index - 1] < 0) // prev are free -> merge
-				{
-			manga[index + manga[index - 1]] += manga[index];
-			manga[index] = 0;
-			int i = manga[index - 1];
-			manga[index - 1] = 0;
+		if (kmanga[index - 1] < 0) // prev are free -> merge
+		{
+			kmanga[index + kmanga[index - 1]] += kmanga[index];
+			kmanga[index] = 0;
+			int i = kmanga[index - 1];
+			kmanga[index - 1] = 0;
 			index += i;
 		}
-		manga[index - manga[index] - 1] = manga[index]; // at the end of Brothers
+		kmanga[index - kmanga[index] - 1] = kmanga[index]; // at the end of Brothers
 
 	} else {
 		panic("Invalid address");
@@ -313,26 +315,15 @@ unsigned int kheap_virtual_address(unsigned int physical_address) {
 	//EFFICIENT IMPLEMENTATION ~O(1) IS REQUIRED ==================
 
 	struct FrameInfo *ptr_frame_info = to_frame_info(physical_address);
-
-//	cprintf("va  = %x \n" ,ptr_frame_info->va);
-//	cprintf("ref  = %x \n" ,ptr_frame_info->references);
-	//cprintf("pa actual = %x \n" ,physical_address);
-
 	if (ptr_frame_info->references == 0)
 		return 0;
-	else {
+	else
+	{
 		uint32 mask = 0xFFF;
-
 		uint32 offset = physical_address & mask;
-
-//		cprintf("offset = %x \n" , offset);
-
-		//cprintf("virtual = %x \n" ,(ptr_frame_info->va) + offset);
 
 		return (ptr_frame_info->va) + offset;
 	}
-	//change this "return" according to your answer
-	//return 0;
 }
 unsigned int kheap_physical_address(unsigned int virtual_address) {
 	//TODO: [PROJECT'23.MS2 - #06] [1] KERNEL HEAP - kheap_physical_address()
@@ -355,7 +346,6 @@ unsigned int kheap_physical_address(unsigned int virtual_address) {
 		return (frame_number * PAGE_SIZE) + offset;
 	}
 
-	//change this "return" according to your answer
 	return 0;
 }
 
@@ -391,86 +381,111 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 //	return NULL;
 //	panic("krealloc() is not implemented yet...!!");
 
-	if ((uint32) virtual_address < brk) {
+	if ((uint32) virtual_address < brk)
+	{
 		//cprintf("dynamic allocator\n");
 		if (new_size <= DYN_ALLOC_MAX_BLOCK_SIZE) {
 			return realloc_block_FF(virtual_address, new_size);
-		} else {
+		}
+		else
+		{
 			void* ret = kmalloc(new_size);
 			if (ret != NULL) {
 				free_block(virtual_address);
 				return ret;
-			} else {
+			}
+			else {
 				return virtual_address;
 			}
 		}
-	} else if (virtual_address == NULL && new_size == 0) {
+	}
+	else
+	{
+		if (new_size <= DYN_ALLOC_MAX_BLOCK_SIZE)
+		{
+			void * ret = alloc_block_FF(new_size);
+			if(ret != NULL)
+			{
+				kfree(virtual_address);
+				return ret;
+			}
+		}
+	}
+
+	if (virtual_address == NULL && new_size == 0) {
 		return NULL;
-	} else if (virtual_address == NULL) {
+	}
+	else if (virtual_address == NULL) {
 		return kmalloc(new_size);
-	} else if (new_size == 0) {
+	}
+	else if (new_size == 0) {
 		kfree(virtual_address);
 		return NULL;
 	}
 
 	int index = Kva_to_index(virtual_address);
-	if (manga[index] < 0) {
+	if (kmanga[index] < 0) {  // is free
 		return NULL;
 	}
 
 	int num_of_req_pages = ROUNDUP(new_size, PAGE_SIZE) / PAGE_SIZE;
-	if (manga[index] == num_of_req_pages)
+	if (kmanga[index] == num_of_req_pages)
 		return virtual_address;
 
-	if (index + manga[index] < manga_size) //not the last
+	if (index + kmanga[index] < kmanga_size) //not the last
+	{
+		if (kmanga[index] < num_of_req_pages)  //new size is greater
+		{
+			int nxt_index = index + kmanga[index];
+			if (kmanga[nxt_index] < 0) // next is free
 			{
-		if (manga[index] < num_of_req_pages)  //new size is greater
+				if (kmanga[index] + -kmanga[nxt_index] == num_of_req_pages)
 				{
-			int nxt_index = index + manga[index];
-			if (manga[nxt_index] < 0) // next is free
-					{
-				if (manga[index] + -manga[nxt_index] == num_of_req_pages) {
-					int page_num = num_of_req_pages - manga[index];
+					int page_num = num_of_req_pages - kmanga[index];
 					myAlloc_pages(index_to_Kva(nxt_index), page_num);
 
-					manga[index] = num_of_req_pages;
-					manga[nxt_index - manga[nxt_index] - 1] = 0;
-					manga[nxt_index] = 0;
+					kmanga[index] = num_of_req_pages;
+					kmanga[nxt_index - kmanga[nxt_index] - 1] = 0;
+					kmanga[nxt_index] = 0;
 					return virtual_address;
-				} else if (manga[index] + -manga[nxt_index]
-						> num_of_req_pages) {
-					int page_num = num_of_req_pages - manga[index];
+				}
+				else if (kmanga[index] + -kmanga[nxt_index] > num_of_req_pages)
+				{
+					int page_num = num_of_req_pages - kmanga[index];
 					myAlloc_pages(index_to_Kva(nxt_index), page_num);
 
-					manga[index] = num_of_req_pages;
-					manga[nxt_index - manga[nxt_index] - 1] += page_num;
-					manga[index + num_of_req_pages] = manga[nxt_index
-							- manga[nxt_index] - 1];
-					manga[nxt_index] = 0;
+					kmanga[index] = num_of_req_pages;
+					kmanga[nxt_index - kmanga[nxt_index] - 1] += page_num;
+					kmanga[index + num_of_req_pages] = kmanga[nxt_index- kmanga[nxt_index] - 1];
+					kmanga[nxt_index] = 0;
 					return virtual_address;
-				} else {
+				}
+				else {
 					return kmalloc_and_kfree(virtual_address, new_size);
 				}
-			} else {
+			}
+			else {
 				return kmalloc_and_kfree(virtual_address, new_size);
 			}
 		}
-		if (manga[index] > num_of_req_pages)  //new size is smaller
-				{
-			int remain_pages = manga[index] - num_of_req_pages;
-			manga[index] = num_of_req_pages;
-			manga[index + num_of_req_pages] = remain_pages;
+		if (kmanga[index] > num_of_req_pages)  //new size is smaller
+		{
+			int remain_pages = kmanga[index] - num_of_req_pages;
+			kmanga[index] = num_of_req_pages;
+			kmanga[index + num_of_req_pages] = remain_pages;
 			kfree(index_to_Kva(index + num_of_req_pages));
 			return virtual_address;
 		}
-	} else  // last
+	}
+	else  // last
 	{
-		if (manga[index] < num_of_req_pages) {
+		if (kmanga[index] < num_of_req_pages) {
 			return kmalloc_and_kfree(virtual_address, new_size);
-		} else {
-			int remain_pages = manga[index] - num_of_req_pages;
-			manga[index] = num_of_req_pages;
-			manga[index + num_of_req_pages] = remain_pages;
+		}
+		else {
+			int remain_pages = kmanga[index] - num_of_req_pages;
+			kmanga[index] = num_of_req_pages;
+			kmanga[index + num_of_req_pages] = remain_pages;
 			kfree(index_to_Kva(index + num_of_req_pages));
 			return virtual_address;
 		}

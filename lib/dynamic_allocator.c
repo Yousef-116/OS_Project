@@ -211,7 +211,6 @@ void *alloc_block_FF(uint32 size)
 //			LIST_LAST(&MemoryList)->size += (sbrk(0) - old_brk);
 //		}
 //		else
-    	if(1)
 		{
 			struct BlockMetaData *meta_data = (struct BlockMetaData *)(old_brk);
 			meta_data->size = sbrk(0) - old_brk;
@@ -378,12 +377,10 @@ void *realloc_block_FF(void* va, uint32 new_size)
 
 	if(va == NULL && new_size == 0)
 	{
-		//cprintf("\n>>>>>>>>>1 \n");
 		return NULL;
 	}
 	else if(va == NULL )
 	{
-		//cprintf("\n>>>>>>>>>2 \n");
 		void * ret = alloc_block_FF(new_size);
 		if(ret != NULL)  //allocation succeeded
 		{
@@ -395,7 +392,6 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	}
 	else if( new_size == 0 )
 	{
-		//cprintf("\n>>>>>>>>>3 \n");
 	    free_block(va);
 	    return NULL;
 	}
@@ -416,14 +412,12 @@ void *realloc_block_FF(void* va, uint32 new_size)
 				totalFreeSize = currBlock->size + nextBlock->size - sizeOfMetaData();
 		    	if(totalFreeSize == new_size)    // if next free and total size == new size
 		    	{
-		    		//cprintf("\n>>>>>>>>>4 \n");
 		    		currBlock->size = new_size + sizeOfMetaData();
 		    		setVBlock0(nextBlock);
 		    		return va;
 		    	}
 		    	else if (totalFreeSize > new_size)    // if next free and total size > new size
 		    	{
-		    		//cprintf("\n>>>>>>>>>5 \n");
 		    		currBlock->size= totalFreeSize+sizeOfMetaData();  // split will handle it it's not your business
 		    		setVBlock0(nextBlock);
 		    		split_block(currBlock,new_size);
@@ -431,12 +425,10 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		    	}
 		    	else if (totalFreeSize < new_size)    // if next free and total size < new size call free bloc and after allocate the bloc by FF
 		    	{
-		    		//cprintf("\n>>>>>>>>>6 \n");
 		    		return allocff_and_free(va, new_size);
 		    	}
 			}
 			else {  // next is not free
-	    		//cprintf("\n>>>>>>>>>7 \n");
 				return allocff_and_free(va, new_size);
 			}
 		}
@@ -444,7 +436,6 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		{
 			if(nextBlock->is_free == 0)   // next is not free  (full)
 			{
-	    		//cprintf("\n>>>>>>>>>8 \n");
 				split_block(currBlock,new_size);
 			}
 			else // next is free
@@ -461,7 +452,6 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		}
 		else if ( currBlock->size - sizeOfMetaData() == new_size ) // new size is equal to current size
 		{
-    		//cprintf("\n>>>>>>>>>10 \n");
 			return va;
 		}
 	}
@@ -469,21 +459,17 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	{
 		if(currBlock->size - sizeOfMetaData() < new_size)// new size is greater than current (last) size
 		{
-    		//cprintf("\n>>>>>>>>>11 \n");
 			return allocff_and_free(va, new_size);
 		}
 		else if(currBlock->size - sizeOfMetaData() > new_size)  // new size is smaller than current (last) size
 		{
 			split_block(currBlock,new_size);
-    		//cprintf("\n>>>>>>>>>12 \n");
 			return va;
 		}
 		else {
-    		//cprintf("\n>>>>>>>>>13 \n");
 			return va;
 		}
 	}
-	//cprintf("\n>>>>>>>>>14 \n");
 	return NULL;
 }
 

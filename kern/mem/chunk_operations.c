@@ -178,18 +178,26 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	for(uint32 va = virtual_address ; num_of_req_pages > 0 ; --num_of_req_pages , va += PAGE_SIZE)
 	{
 		//cprintf(">> va = %x\n", va);
-		uint32 perm = pt_get_page_permissions(e->env_page_directory, va);
-		if(perm & PERM_PRESENT){
-			unmap_frame(e->env_page_directory , va);
-		}
 		pt_set_page_permissions(e->env_page_directory, va, 0x000, MARKED);
-		pf_remove_env_page(e,  va);
-		env_page_ws_invalidate( e, va);
+		pf_remove_env_page(e, va);
+		uint32 perm = pt_get_page_permissions(e->env_page_directory, va);
+		if(perm & PERM_PRESENT)
+		{
+			unmap_frame(e->env_page_directory , va);
+			if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
+			{
+				env_page_ws_invalidate( e, va);
+			}
+			else
+			{
+				//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
+				//BONUS#2 - DONE
+				remove_ws_element_O1(e, virtual_address);
+			}
+		}
 	}
 	//cprintf("size WS after = %d , free frame list after  = %d \n",e->page_WS_list.size , LIST_SIZE(&free_frame_list));
 
-	//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
-	//BONUS#2 - DONE
 }
 
 //=====================================
