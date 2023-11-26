@@ -501,7 +501,7 @@ void* sys_sbrk(int increment) {
 			ptr_frame_info = get_frame_info(curenv->env_page_directory, temp_brk, &ptr_page_table);
 			if (ptr_frame_info == 0)
 				return (void *)-1;
-
+			pf_remove_env_page(curenv, temp_brk); //remove from page file (disk)
 			unmap_frame(curenv->env_page_directory, temp_brk);
 			env_page_ws_invalidate(curenv, temp_brk);
 			temp_brk += PAGE_SIZE;

@@ -161,7 +161,7 @@ void* sbrk(int increment) {
 			ptr_frame_info = get_frame_info(ptr_page_directory, temp_brk, &ptr_page_table);
 			if (ptr_frame_info == NULL)
 				panic("\nERROR_6 - cannot find frame to free\n");
-
+			//pf_remove_env_page(curenv, temp_brk); //remove from page file (disk) -- can't see func or curenv
 			unmap_frame(ptr_page_directory, temp_brk);
 			temp_brk += PAGE_SIZE;
 		}
