@@ -380,17 +380,14 @@ int execute_command(char *command_string)
 int process_command(int number_of_arguments, char** arguments)
 {
 	LIST_INIT(&foundCommands);
-	for(uint32 i = 0 ; i < NUM_OF_COMMANDS; i++){
-//		char * cmd = "";
-//		str2lower(arguments[0], arguments[0]);
-//		str2lower(cmd, commands[i].name);
-
-		if(strcmp(arguments[0] , commands[i].name) == 0){
-
+	for(uint32 i = 0 ; i < NUM_OF_COMMANDS; i++)
+	{
+		if(strcmp(arguments[0] , commands[i].name) == 0)
+		{
 			if(commands[i].num_of_args ==  number_of_arguments - 1)
 			{
 				return i;
-			}else if( number_of_arguments - 1 != commands[i].num_of_args && commands[i].num_of_args == -1 && number_of_arguments -1 >= 1)
+			}else if(commands[i].num_of_args == -1 && commands[i].num_of_args != number_of_arguments - 1 && number_of_arguments -1 >= 1)
 			{
 				return i;
 			}

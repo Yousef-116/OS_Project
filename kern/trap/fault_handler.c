@@ -93,7 +93,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			if(ret == E_PAGE_NOT_EXIST_IN_PF)
 			{
 				alloc = 0;
-				cprintf("Placement kill\n");
+//				cprintf("Placement kill\n");
 				sched_kill_env(curenv->env_id);
 			}
 		}
