@@ -325,7 +325,6 @@ void __static_cpt(uint32 *ptr_directory, const uint32 virtual_address, uint32 **
 //
 int map_frame(uint32 *ptr_page_directory, struct FrameInfo *ptr_frame_info, uint32 virtual_address, int perm)
 {
-	//cprintf(">> mapping va = %x\n", virtual_address);
 	// Fill this function in
 	uint32 physical_address = to_physical_address(ptr_frame_info);
 	uint32 *ptr_page_table;
@@ -413,14 +412,16 @@ struct FrameInfo * get_frame_info(uint32 *ptr_page_directory, uint32 virtual_add
 {
 	// Fill this function in
 	//cprintf(".gfi .1\n %x, %x, %x, \n", ptr_page_directory, virtual_address, ptr_page_table);
-	uint32 ret =  get_page_table(ptr_page_directory, virtual_address, ptr_page_table);
+	uint32 ret =  get_page_table(ptr_page_directory, virtual_address, ptr_page_table) ;
 	//cprintf(".gfi .15\n");
 	if((*ptr_page_table) != 0)
 	{
 		uint32 index_page_table = PTX(virtual_address);
 		//cprintf(".gfi .2\n");
 		uint32 page_table_entry = (*ptr_page_table)[index_page_table];
-		if( page_table_entry != 0)
+		/*2023 el7:)*///Make sure it has a frame number other than 0 (not just a marked page from the page allocator)
+		//if( page_table_entry != 0)
+		if( (page_table_entry & ~0xFFF) != 0)
 		{
 			//cprintf(".gfi .3\n");
 			return to_frame_info( EXTRACT_ADDRESS ( page_table_entry ) );
@@ -451,7 +452,6 @@ void unmap_frame(uint32 *ptr_page_directory, uint32 virtual_address)
 	struct FrameInfo* ptr_frame_info = get_frame_info(ptr_page_directory, virtual_address, &ptr_page_table);
 	if( ptr_frame_info != 0 )
 	{
-		//cprintf(">> the unmaped va = %x\n", virtual_address);
 		if (ptr_frame_info->isBuffered && !CHECK_IF_KERNEL_ADDRESS((uint32)virtual_address))
 			cprintf("WARNING: Freeing BUFFERED frame at va %x!!!\n", virtual_address) ;
 		decrement_references(ptr_frame_info);
@@ -464,7 +464,6 @@ void unmap_frame(uint32 *ptr_page_directory, uint32 virtual_address)
 		/*********************************************************************************/
 
 		tlb_invalidate(ptr_page_directory, (void *)virtual_address);
-
 	}
 }
 
