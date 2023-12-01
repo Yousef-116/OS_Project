@@ -450,6 +450,7 @@ void* sys_sbrk(int increment) {
 	 * 		You might have to undo any operations you have done so far in this case.
 	 */
 
+	cprintf(">> sys_brk called\n");
 	uint32 old_brk = curenv->dynamic_allocate_USER_heap_break;
 	uint32 new_brk = old_brk;
 	if (increment > 0)

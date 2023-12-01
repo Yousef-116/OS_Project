@@ -26,6 +26,9 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
 	new_element->virtual_address = virtual_address;
 	new_element->prev_next_info.le_prev = NULL;
 	new_element->prev_next_info.le_next = NULL;
+
+	UHva_to_PtrWSelem[(ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = new_element;
+
 	return new_element;
 }
 /*

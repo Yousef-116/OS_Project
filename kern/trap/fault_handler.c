@@ -87,8 +87,10 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 	{
 		//cprintf("placement ========================== \n");
 		bool alloc = 1;
+		fault_va = ROUNDDOWN(fault_va, PAGE_SIZE);
 		if(!(fault_va >= USTACKBOTTOM && fault_va < USTACKTOP) && !(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX))
 		{
+			cprintf(">> placemente, not stack not heap\n");
 			int ret = pf_read_env_page(curenv, (void*)fault_va);
 			if(ret == E_PAGE_NOT_EXIST_IN_PF)
 			{
@@ -106,12 +108,9 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 
 			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
 			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
-			UHva_to_PtrWSelem[(ROUNDDOWN(fault_va, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = WSElem;
 
-//			if(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) // In USER HEAP boundaries
-//			{
-//				UHva_to_PtrWSelem[(ROUNDDOWN(fault_va, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = WSElem;
-//			}
+			/*done in env_page_ws_list_create_element*/
+			//UHva_to_PtrWSelem[(ROUNDDOWN(fault_va, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = WSElem;
 
 			// update page_last_WS_element for FIFO and clock algorithm
 			if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
@@ -131,7 +130,37 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		{
 			//TODO: [PROJECT'23.MS3 - #1] [1] PAGE FAULT HANDLER - FIFO Replacement
 			// Write your code here, remove the panic and write your code
-			panic("page_fault_handler() FIFO Replacement is not implemented yet...!!");
+			//panic("page_fault_handler() FIFO Replacement is not implemented yet...!!");
+
+			//cprintf("in FIFO\n");
+			cprintf(">> fault_va = %x => %x \n", fault_va, ROUNDDOWN(fault_va, PAGE_SIZE));
+			fault_va = ROUNDDOWN(fault_va, PAGE_SIZE);
+
+			// allocate and map faulted page
+			struct FrameInfo * targetPageFrame;
+			allocate_frame(&targetPageFrame);
+			map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_WRITEABLE);
+
+			// update array
+			UHva_to_PtrWSelem[(ROUNDDOWN(fault_va, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = curenv->page_last_WS_element;
+			uint32 removed_va = curenv->page_last_WS_element->virtual_address;
+			UHva_to_PtrWSelem[(ROUNDDOWN(removed_va, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = NULL;
+
+			// update virtual_address of the WS
+			curenv->page_last_WS_element->virtual_address = fault_va;
+
+			// unmap the removed va
+			unmap_frame(curenv->env_page_directory, removed_va);
+
+			// update page_last_WS_element for FIFO and clock algorithm
+			if(curenv->page_last_WS_element == LIST_LAST(&curenv->page_WS_list))
+				curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
+			else
+				curenv->page_last_WS_element = LIST_NEXT(curenv->page_last_WS_element);
+
+			// print WS list
+			env_page_ws_print(curenv);
+
 		}
 		if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 		{

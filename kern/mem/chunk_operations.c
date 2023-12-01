@@ -128,6 +128,7 @@ void* index_to_Uva(int index) {
 
 void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
+	cprintf(">> allocate user mem called\n");
 	/*=============================================================================*/
 	//TODO: [PROJECT'23.MS2 - #10] [2] USER HEAP - allocate_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */
@@ -161,6 +162,7 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 //=====================================
 void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
+	cprintf(">> free user mem called\n");
 	/*==========================================================================*/
 	//TODO: [PROJECT'23.MS2 - #12] [2] USER HEAP - free_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */

@@ -382,25 +382,25 @@ void fault_handler(struct Trapframe *tf)
 			//cprintf("================ In Validate ================\n");
 
 
+			fault_va = ROUNDDOWN(fault_va, PAGE_SIZE);
 			int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
-//			cprintf("Permission = %x, " , perms);
-//          cprintf("faulted_va = %x \n" , fault_va);
+//			cprintf(">> Permission = %x, faulted_va = %x \n" , perms, fault_va);
 
 			// Unmarked and in user heap
 			if (!(perms & MARKED) && (fault_va >= faulted_env->dynamic_allocate_USER_heap_start && fault_va < USER_HEAP_MAX)){
-//				cprintf("\nFaulted VA failed due to marked permission\n") ;
+				cprintf("\n>> fault_va(%x) failed => pointing to umarked user heap page\n", fault_va);
 				sched_kill_env(faulted_env->env_id);
 			}
 
 			// pointing to kernel
 			else if (fault_va >= USER_LIMIT){
-//				cprintf("\nFaulted VA >= USER_LIMIT\n");
+				cprintf("\n>> fault_va(%x) failed => pointing to kernal\n", fault_va);
 				sched_kill_env(faulted_env->env_id);
 			}
 
             // Exist with read-only permissions
 			else if ((perms & PERM_PRESENT) && !(perms & PERM_WRITEABLE)){
-//				cprintf("\nFaulted VA failed due to R/W permission\n");
+				cprintf("\n>> fault_va(%x) failed => due to wrong access rights\n", fault_va);
 				sched_kill_env(faulted_env->env_id);
 			}
 

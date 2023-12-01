@@ -60,10 +60,9 @@ void init_uheap()
 	//cprintf("user_hLimit = %x, umanga_strt = %d\n\n", user_hLimit, umanga_strt);
 }
 
-int ctr = 1;
-
 void* malloc(uint32 size)
 {
+	cprintf(">> malloc called\n");
 	//==============================================================
 	//DON'T CHANGE THIS CODE========================================
 	InitializeUHeap();
@@ -150,6 +149,7 @@ void* malloc(uint32 size)
 //=================================
 void free(void* virtual_address)
 {
+	cprintf(">> free called\n");
 	//TODO: [PROJECT'23.MS2 - #11] [2] USER HEAP - free() [User Side]
 	// Write your code here, remove the panic and write your code
 	//panic("free() is not implemented yet...!!");
