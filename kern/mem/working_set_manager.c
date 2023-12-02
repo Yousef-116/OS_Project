@@ -13,6 +13,14 @@
 ///============================================================================================
 /// Dealing with environment working set
 #if USE_KHEAP
+
+struct WorkingSetElement* UHva_to_PtrWSelem[(USER_LIMIT - USER_HEAP_START) / PAGE_SIZE]; // array holds the ws_element of each USER HEAP va
+int __getIndex(uint32 virtual_address)
+{
+	int index = (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE;
+	return index;
+}
+
 inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
 {
 	//TODO: [PROJECT'23.MS2 - #14] [3] PAGE FAULT HANDLER - Create a new working set element
@@ -27,7 +35,7 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
 	new_element->prev_next_info.le_prev = NULL;
 	new_element->prev_next_info.le_next = NULL;
 
-	UHva_to_PtrWSelem[(ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE] = new_element;
+//	UHva_to_PtrWSelem[__getIndex(virtual_address)] = new_element;
 
 	return new_element;
 }
@@ -93,21 +101,41 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // Ori
 }
 */
 
+struct WorkingSetElement *get_WSE_from_list(struct WS_List *ws_List, uint32 virtual_address)
+{
+	struct WorkingSetElement *ptr_WS_element = NULL;
+	LIST_FOREACH(ptr_WS_element, (ws_List))
+	{
+		if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
+		{
+			return ptr_WS_element;
+		}
+	}
+	return NULL;
+}
 
 inline void remove_ws_element_O1(struct Env* e, uint32 virtual_address)
 {
-	int index = (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE;
+	cprintf(">> remove WS\n");
+	int index = __getIndex(virtual_address);
 	struct WorkingSetElement *wse = UHva_to_PtrWSelem[index];
 	//cprintf("\nidx = %d , wse = %x\n", (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE, wse);
-	if(wse != NULL)
+	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
-		if (e->page_last_WS_element == wse)
+	}
+	else
+	{
+		if(wse != NULL)
 		{
-			e->page_last_WS_element = LIST_NEXT(wse);
+			if (e->page_last_WS_element == wse)
+			{
+				e->page_last_WS_element = LIST_NEXT(wse);
+				cprintf("last ptr to next\n");
+			}
+			LIST_REMOVE(&(e->page_WS_list), wse);
+			kfree(wse);
+	//		UHva_to_PtrWSelem[index] = NULL;
 		}
-		LIST_REMOVE(&(e->page_WS_list), wse);
-		kfree(wse);
-//		UHva_to_PtrWSelem[index] = NULL;
 	}
 }
 
@@ -207,12 +235,13 @@ void env_page_ws_print(struct Env *e)
 			char isModified = ((perm&PERM_MODIFIED) ? 1 : 0);
 			char isUsed= ((perm&PERM_USED) ? 1 : 0);
 			char isBuffered= ((perm&PERM_BUFFERED) ? 1 : 0);
+			char isMarked= ((perm&MARKED) ? 1 : 0);
 
 			cprintf("%d: %x",i, virtual_address);
 
 			//2021
-			cprintf(", used= %d, modified= %d, buffered= %d, time stamp= %x, sweeps_cnt= %d",
-					isUsed, isModified, isBuffered, time_stamp, wse->sweeps_counter) ;
+			cprintf(", marked= %d, used= %d, modified= %d, buffered= %d, time stamp= %x, sweeps_cnt= %d",
+					isMarked, isUsed, isModified, isBuffered, time_stamp, wse->sweeps_counter) ;
 
 			if(wse == e->page_last_WS_element)
 			{
@@ -221,10 +250,10 @@ void env_page_ws_print(struct Env *e)
 			cprintf("\n");
 			i++;
 		}
-		for (; i < e->page_WS_max_size; ++i)
-		{
-			cprintf("EMPTY LOCATION");
-		}
+//		for (; i < e->page_WS_max_size; ++i)
+//		{
+//			cprintf("EMPTY LOCATION");
+//		}
 	}
 }
 #else
@@ -287,6 +316,7 @@ inline uint32 env_page_ws_is_entry_empty(struct Env* e, uint32 entry_index)
 
 void env_page_ws_print(struct Env *e)
 {
+	return;
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
 		int i = 0;

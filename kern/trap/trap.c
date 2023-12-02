@@ -354,7 +354,7 @@ void fault_handler(struct Trapframe *tf)
 	{
 		//cprintf("trap from USER\n");
 		if (fault_va >= USTACKTOP && fault_va < USER_TOP)
-			panic("User: stack underflow exception!");
+			panic("User: stack underflow exception!, fault_va = %x", fault_va);
 	}
 
 	//get a pointer to the environment that caused the fault at runtime
