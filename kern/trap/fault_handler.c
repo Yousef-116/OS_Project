@@ -186,9 +186,9 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			if(WSElem != NULL) // exist in Second List
 			{
 				cprintf(">> WS found in Second List\n");
-				if(LIST_SIZE(&curenv->ActiveList) == curenv->ActiveListSize)
+				//if(LIST_SIZE(&curenv->ActiveList) == curenv->ActiveListSize)
 				{
-					cprintf(">> Active list reach max\n");
+					//cprintf(">> Active list reach max\n");
 					// the last in Active list -----> the first in Second list
 					//LIST_INSERT_HEAD(&curenv->SecondList, LIST_LAST(&curenv->ActiveList));
 					//curenv->ActiveList.size--;
@@ -196,14 +196,14 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 					struct WorkingSetElement* replElm = LIST_LAST(&curenv->ActiveList);
 					LIST_REMOVE(&curenv->ActiveList, replElm);
 					LIST_INSERT_HEAD(&curenv->SecondList, replElm);
-					pt_set_page_permissions(curenv->env_page_directory, fault_va, 0x000, PERM_PRESENT);
+					pt_set_page_permissions(curenv->env_page_directory, replElm->virtual_address, 0x000, PERM_PRESENT);
 				}
 
 //				LIST_INSERT_HEAD(&curenv->ActiveList, WSElem);
 //				curenv->SecondList.size--;
 				LIST_REMOVE(&curenv->SecondList, WSElem);
 				LIST_INSERT_HEAD(&curenv->ActiveList, WSElem);
-				pt_set_page_permissions(curenv->env_page_directory, fault_va, PERM_PRESENT, 0x000);
+				pt_set_page_permissions(curenv->env_page_directory, WSElem->virtual_address, PERM_PRESENT, 0x000);
 			}
 			else
 			{
@@ -237,12 +237,12 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 						struct WorkingSetElement* replElm = LIST_LAST(&curenv->ActiveList);
 						LIST_REMOVE(&curenv->ActiveList, replElm);
 						LIST_INSERT_HEAD(&curenv->SecondList, replElm);
-						pt_set_page_permissions(curenv->env_page_directory, fault_va, 0x000, PERM_PRESENT);
+						pt_set_page_permissions(curenv->env_page_directory, replElm->virtual_address, 0x000, PERM_PRESENT);
 					}
 
 					WSElem = env_page_ws_list_create_element(curenv, fault_va);
 					LIST_INSERT_HEAD(&curenv->ActiveList, WSElem);
-					pt_set_page_permissions(curenv->env_page_directory, fault_va, PERM_PRESENT, 0x000);
+					pt_set_page_permissions(curenv->env_page_directory, WSElem->virtual_address, PERM_PRESENT, 0x000);
 				}
 			}
 		}
