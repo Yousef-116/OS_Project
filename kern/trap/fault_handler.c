@@ -73,6 +73,37 @@ void table_fault_handler(struct Env * curenv, uint32 fault_va)
 
 //Handle the page fault
 
+bool alloc_and_read_from_file(uint32 fault_va)
+{
+	// allocate and map fault_va
+	struct FrameInfo * targetPageFrame;
+	allocate_frame(&targetPageFrame);
+	map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_WRITEABLE);
+
+	// read from disk
+	int ret = pf_read_env_page(curenv, (void*)fault_va);
+	if(ret == E_PAGE_NOT_EXIST_IN_PF)
+	{
+		cprintf(">> Not in disk...");
+		if(!(fault_va >= USTACKBOTTOM && fault_va < USTACKTOP) && !(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX))
+		{
+			cprintf(" not stack nor heap... so kill\n");
+			sched_kill_env(curenv->env_id);
+			return 0;
+		}
+		cprintf(">> but it's stack or heap... so it's ok\n");
+	}
+	return 1;
+}
+
+void shift_Active_list()
+{
+	// remove the last WS from Active list and insert it to Second list
+	struct WorkingSetElement* shift_Elm = LIST_LAST(&curenv->ActiveList);
+	LIST_REMOVE(&curenv->ActiveList, shift_Elm);
+	LIST_INSERT_HEAD(&curenv->SecondList, shift_Elm);
+	pt_set_page_permissions(curenv->env_page_directory, shift_Elm->virtual_address, 0x000, PERM_PRESENT);
+}
 
 void page_fault_handler(struct Env * curenv, uint32 fault_va)
 {
@@ -87,56 +118,32 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 	cprintf(">> fault_va = %x", fault_va);
 	fault_va = ROUNDDOWN(fault_va, PAGE_SIZE);
 	cprintf(" => %x \n", fault_va);
+
 	if(isPageReplacmentAlgorithmFIFO())
 	{
 		//FIFO Placement
+		if(alloc_and_read_from_file(fault_va) == 0)
+			return;
+
 		if(wsSize < (curenv->page_WS_max_size))
 		{
-			//cprintf("placement ========================== \n");
-			bool alloc = 1;
-			int ret = pf_read_env_page(curenv, (void*)fault_va);
-			if(ret == E_PAGE_NOT_EXIST_IN_PF)
+			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
+			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
+
+			// update page_last_WS_element for FIFO and clock algorithm
+			if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
 			{
-				cprintf(">> FIFO placement, not in disk not stack not heap\n");
-				if(!(fault_va >= USTACKBOTTOM && fault_va < USTACKTOP) && !(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX))
-				{
-					alloc = 0;
-					cprintf(">> FIFO Placement kill\n");
-					sched_kill_env(curenv->env_id);
-				}
+				curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
 			}
-			if(alloc == 1)
-			{
-				//cprintf("alloc = 1\n");
-				struct FrameInfo * targetPageFrame;
-				allocate_frame(&targetPageFrame);
-				map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_WRITEABLE);
-
-				struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
-				LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
-
-				// update page_last_WS_element for FIFO and clock algorithm
-				if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
-				{
-					curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
-				}
-			}
-
-			//cprintf("========================================== \n\n");
-			//refer to the project presentation and documentation for details
 		}
-		else //FIFO Replacement
+		//FIFO Replacement
+		else
 		{
 			//cprintf("REPLACEMENT=========================WS Size = %d\n", wsSize );
 			//refer to the project presentation and documentation for details
 			//TODO: [PROJECT'23.MS3 - #1] [1] PAGE FAULT HANDLER - FIFO Replacement
 			// Write your code here, remove the panic and write your code
 			//panic("page_fault_handler() FIFO Replacement is not implemented yet...!!");
-
-			// allocate and map faulted page
-			struct FrameInfo * targetPageFrame;
-			allocate_frame(&targetPageFrame);
-			map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_WRITEABLE);
 
 			// update array
 			//UHva_to_PtrWSelem[__getIndex(fault_va)] = curenv->page_last_WS_element;
@@ -158,19 +165,15 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			}
 			else cprintf("victim page is not modified and not stack nor heap\n");
 
-			// unmap the removed va
+			// unmap the victim va
 			unmap_frame(curenv->env_page_directory, victim_va);
-
 
 			// update page_last_WS_element for FIFO and clock algorithm
 			if(curenv->page_last_WS_element == LIST_LAST(&curenv->page_WS_list))
 				curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
 			else
 				curenv->page_last_WS_element = LIST_NEXT(curenv->page_last_WS_element);
-
 		}
-		// print WS list
-		//env_page_ws_print(curenv);
 	}
 	else if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
@@ -178,29 +181,18 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		// Write your code here, remove the panic and write your code
 		//panic("page_fault_handler() LRU Replacement is not implemented yet...!!");
 
-		if(LIST_SIZE(&curenv->ActiveList) + LIST_SIZE(&curenv->SecondList) < (curenv->page_WS_max_size))
+		struct WorkingSetElement* WSElem = get_WSE_from_list(&curenv->SecondList, fault_va);
+		if(WSElem != NULL || LIST_SIZE(&curenv->ActiveList) + LIST_SIZE(&curenv->SecondList) < (curenv->page_WS_max_size))
 		{
 			// LRU placement
-
-			struct WorkingSetElement* WSElem = get_WSE_from_list(&curenv->SecondList, fault_va);
 			if(WSElem != NULL) // exist in Second List
 			{
-				cprintf(">> WS found in Second List\n");
-				//if(LIST_SIZE(&curenv->ActiveList) == curenv->ActiveListSize)
-				{
-					//cprintf(">> Active list reach max\n");
-					// the last in Active list -----> the first in Second list
-					//LIST_INSERT_HEAD(&curenv->SecondList, LIST_LAST(&curenv->ActiveList));
-					//curenv->ActiveList.size--;
+				cprintf(">> WS found in Second List... so move\n");
 
-					struct WorkingSetElement* replElm = LIST_LAST(&curenv->ActiveList);
-					LIST_REMOVE(&curenv->ActiveList, replElm);
-					LIST_INSERT_HEAD(&curenv->SecondList, replElm);
-					pt_set_page_permissions(curenv->env_page_directory, replElm->virtual_address, 0x000, PERM_PRESENT);
-				}
+				// remove the last WS from Active list and insert it to Second list
+				shift_Active_list();
 
-//				LIST_INSERT_HEAD(&curenv->ActiveList, WSElem);
-//				curenv->SecondList.size--;
+				// remove the desired WS from Second list and insert in Active list
 				LIST_REMOVE(&curenv->SecondList, WSElem);
 				LIST_INSERT_HEAD(&curenv->ActiveList, WSElem);
 				pt_set_page_permissions(curenv->env_page_directory, WSElem->virtual_address, PERM_PRESENT, 0x000);
@@ -208,54 +200,55 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			else
 			{
 				cprintf(">> WS not found in Second List... create new one\n");
-				bool alloc = 1;
-				int ret = pf_read_env_page(curenv, (void*)fault_va);
-				if(ret == E_PAGE_NOT_EXIST_IN_PF)
+				if(alloc_and_read_from_file(fault_va) == 0)
+					return;
+
+				if(LIST_SIZE(&curenv->ActiveList) == curenv->ActiveListSize)
 				{
-					cprintf(">> LRU placement, not stack not heap\n");
-					if(!(fault_va >= USTACKBOTTOM && fault_va < USTACKTOP) && !(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX))
-					{
-						alloc = 0;
-						cprintf(">> LRU Placement kill\n");
-						sched_kill_env(curenv->env_id);
-					}
+					cprintf(">> Active list reach max... so shift\n");
+					shift_Active_list();
 				}
-				if(alloc == 1)
-				{
-					//cprintf("alloc = 1\n");
-					struct FrameInfo * targetPageFrame;
-					allocate_frame(&targetPageFrame);
-					map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_WRITEABLE);
 
-					if(LIST_SIZE(&curenv->ActiveList) == curenv->ActiveListSize)
-					{
-						cprintf(">> Active list reach max\n");
-						// the last in Active list -----> the first in Second list
-						//LIST_INSERT_HEAD(&curenv->SecondList, LIST_LAST(&curenv->ActiveList));
-						//curenv->ActiveList.size--;
-
-						struct WorkingSetElement* replElm = LIST_LAST(&curenv->ActiveList);
-						LIST_REMOVE(&curenv->ActiveList, replElm);
-						LIST_INSERT_HEAD(&curenv->SecondList, replElm);
-						pt_set_page_permissions(curenv->env_page_directory, replElm->virtual_address, 0x000, PERM_PRESENT);
-					}
-
-					WSElem = env_page_ws_list_create_element(curenv, fault_va);
-					LIST_INSERT_HEAD(&curenv->ActiveList, WSElem);
-					pt_set_page_permissions(curenv->env_page_directory, WSElem->virtual_address, PERM_PRESENT, 0x000);
-				}
+				WSElem = env_page_ws_list_create_element(curenv, fault_va);
+				LIST_INSERT_HEAD(&curenv->ActiveList, WSElem);
 			}
 		}
 		else
 		{
 			// LRU Replacement
-		}
+			cprintf(">> The two lists reach their max and fault_va not found in Second list... so Replacement\n");
 
-		// print WS list
-		env_page_ws_print(curenv);
+			if(alloc_and_read_from_file(fault_va) == 0)
+				return;
+
+			// remove victim
+			uint32 victim_va = LIST_LAST(&curenv->SecondList)->virtual_address;
+			LIST_REMOVE(&curenv->SecondList, LIST_LAST(&curenv->SecondList));
+
+			// disk managing
+			int perms = pt_get_page_permissions(curenv->env_page_directory, victim_va);
+			if(perms & PERM_MODIFIED || (victim_va >= USTACKBOTTOM && victim_va < USTACKTOP) || (victim_va >= USER_HEAP_START && victim_va < USER_HEAP_MAX))
+			{
+				cprintf(">> victim page is modified or stack or heap... ");
+				uint32 *ptr_page_table;
+				struct FrameInfo * modified_page_frame_info = get_frame_info(curenv->env_page_directory, victim_va, &ptr_page_table);
+				pf_update_env_page(curenv, victim_va, modified_page_frame_info);
+				cprintf("updated in disk\n");
+			}
+			else cprintf("victim page is not modified and not stack nor heap\n");
+
+			// unmap the victim va
+			unmap_frame(curenv->env_page_directory, victim_va);
+
+			WSElem = env_page_ws_list_create_element(curenv, fault_va);
+			LIST_INSERT_HEAD(&curenv->ActiveList, WSElem);
+		}
 
 		//TODO: [PROJECT'23.MS3 - BONUS] [1] PAGE FAULT HANDLER - O(1) implementation of LRU replacement
 	}
+
+	// print WS list
+	env_page_ws_print(curenv);
 }
 
 void __page_fault_handler_with_buffering(struct Env * curenv, uint32 fault_va)
