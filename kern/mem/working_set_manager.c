@@ -101,6 +101,29 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // Ori
 }
 */
 
+void zbt_el_zabt(struct Env* e)
+{
+	if(isPageReplacmentAlgorithmFIFO())
+	{
+		if(e->page_last_WS_element != NULL && LIST_PREV(e->page_last_WS_element) != NULL)
+		{
+			// get the prev of the page_last_WS_element
+			struct WorkingSetElement* new_last = LIST_PREV(e->page_last_WS_element);
+			LIST_NEXT(new_last) = NULL;
+
+			// get first element in the list
+			struct WorkingSetElement* old_first = LIST_FIRST(&(e->page_WS_list));
+			LIST_PREV(old_first) = LIST_LAST(&(e->page_WS_list));
+			LIST_NEXT(LIST_LAST(&(e->page_WS_list))) = old_first;
+			LIST_LAST(&(e->page_WS_list)) = new_last;
+
+			// make the page_last_WS_element the first element in the list
+			LIST_FIRST(&(e->page_WS_list)) = e->page_last_WS_element;
+			LIST_PREV(e->page_last_WS_element) = NULL;
+		}
+	}
+}
+
 struct WorkingSetElement *get_WSE_from_list(struct WS_List *ws_List, uint32 virtual_address)
 {
 	struct WorkingSetElement *ptr_WS_element = NULL;
@@ -206,6 +229,7 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 
 void env_page_ws_print(struct Env *e)
 {
+	return;
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
 		int i = 0;

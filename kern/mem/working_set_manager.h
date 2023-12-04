@@ -13,8 +13,11 @@
 // Page WS helper functions ===================================================
 void env_page_ws_print(struct Env *curenv);
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address);
+
+// Our WS functions ===========================================================
 inline void remove_ws_element_O1(struct Env* e, uint32 virtual_address);
 struct WorkingSetElement *get_WSE_from_list(struct WS_List *ws_List, uint32 virtual_address);
+void zbt_el_zabt(struct Env* e);
 
 #if USE_KHEAP
 /*2024*/

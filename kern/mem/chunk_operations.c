@@ -128,7 +128,7 @@ void* index_to_Uva(int index) {
 
 void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
-	cprintf(">> allocate user mem called\n");
+//	cprintf(">> allocate user mem called\n");
 	/*=============================================================================*/
 	//TODO: [PROJECT'23.MS2 - #10] [2] USER HEAP - allocate_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */
@@ -162,7 +162,7 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 //=====================================
 void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
-	cprintf(">> free user mem called\n");
+//	cprintf(">> free user mem called\n");
 	/*==========================================================================*/
 	//TODO: [PROJECT'23.MS2 - #12] [2] USER HEAP - free_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */
@@ -186,7 +186,9 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 		if(perm & PERM_PRESENT)
 		{
 			unmap_frame(e->env_page_directory , va);
-			env_page_ws_invalidate( e, va);
+			env_page_ws_invalidate(e, va);
+			zbt_el_zabt(e);
+
 			//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
 			//BONUS#2 - DONE
 			//remove_ws_element_O1(e, virtual_address);
