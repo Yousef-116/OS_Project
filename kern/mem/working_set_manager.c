@@ -14,11 +14,13 @@
 /// Dealing with environment working set
 #if USE_KHEAP
 
-struct WorkingSetElement* UHva_to_PtrWSelem[(USER_LIMIT - USER_HEAP_START) / PAGE_SIZE]; // array holds the ws_element of each USER HEAP va
-int __getIndex(uint32 virtual_address)
+void shift_Second_list(struct Env* e)
 {
-	int index = (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE;
-	return index;
+	// remove the first WSE from Second list and insert it to the tail of Active list
+	struct WorkingSetElement* ptr_tmp_WS_element = LIST_FIRST(&(e->SecondList));
+	LIST_REMOVE(&(e->SecondList), ptr_tmp_WS_element);
+	LIST_INSERT_TAIL(&(e->ActiveList), ptr_tmp_WS_element);
+	pt_set_page_permissions(e->env_page_directory, ptr_tmp_WS_element->virtual_address, PERM_PRESENT, 0);
 }
 
 inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
@@ -35,71 +37,11 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
 	new_element->prev_next_info.le_prev = NULL;
 	new_element->prev_next_info.le_next = NULL;
 
-//	UHva_to_PtrWSelem[__getIndex(virtual_address)] = new_element;
+	//va_to_WSE[__getIndex(virtual_address)] = new_element;
+	set_wse_of_va(virtual_address, new_element);
 
 	return new_element;
 }
-/*
-inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // Original function
-{
-	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
-	{
-		bool found = 0;
-		struct WorkingSetElement *ptr_WS_element = NULL;
-		LIST_FOREACH(ptr_WS_element, &(e->ActiveList))
-		{
-			if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
-			{
-				struct WorkingSetElement* ptr_tmp_WS_element = LIST_FIRST(&(e->SecondList));
-				unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
-				LIST_REMOVE(&(e->ActiveList), ptr_WS_element);
-				if(ptr_tmp_WS_element != NULL)
-				{
-					LIST_REMOVE(&(e->SecondList), ptr_tmp_WS_element);
-					LIST_INSERT_TAIL(&(e->ActiveList), ptr_tmp_WS_element);
-					pt_set_page_permissions(e->env_page_directory, ptr_tmp_WS_element->virtual_address, PERM_PRESENT, 0);
-				}
-				found = 1;
-				break;
-			}
-		}
-
-		if (!found)
-		{
-			ptr_WS_element = NULL;
-			LIST_FOREACH(ptr_WS_element, &(e->SecondList))
-			{
-				if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
-				{
-					unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
-					LIST_REMOVE(&(e->SecondList), ptr_WS_element);
-
-					kfree(ptr_WS_element);
-				}
-			}
-		}
-	}
-	else
-	{
-		struct WorkingSetElement *wse;
-		LIST_FOREACH(wse, &(e->page_WS_list))
-		{
-			if(ROUNDDOWN(wse->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
-			{
-				if (e->page_last_WS_element == wse)
-				{
-					e->page_last_WS_element = LIST_NEXT(wse);
-				}
-				LIST_REMOVE(&(e->page_WS_list), wse);
-
-				kfree(wse);
-
-				break;
-			}
-		}
-	}
-}
-*/
 
 void zbt_el_zabt(struct Env* e)
 {
@@ -137,32 +79,68 @@ struct WorkingSetElement *get_WSE_from_list(struct WS_List *ws_List, uint32 virt
 	return NULL;
 }
 
-inline void remove_ws_element_O1(struct Env* e, uint32 virtual_address)
+
+struct WorkingSetElement *get_WSE_from_Secondlist(struct Env* e, uint32 virtual_address)
 {
-	cprintf(">> remove WS\n");
-	int index = __getIndex(virtual_address);
-	struct WorkingSetElement *wse = UHva_to_PtrWSelem[index];
-	//cprintf("\nidx = %d , wse = %x\n", (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE, wse);
-	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
-	{
-	}
-	else
-	{
-		if(wse != NULL)
-		{
-			if (e->page_last_WS_element == wse)
-			{
-				e->page_last_WS_element = LIST_NEXT(wse);
-				cprintf("last ptr to next\n");
-			}
-			LIST_REMOVE(&(e->page_WS_list), wse);
-			kfree(wse);
-	//		UHva_to_PtrWSelem[index] = NULL;
+	struct WorkingSetElement *wse = get_wse_of_va(virtual_address);
+	if(wse != NULL){
+		uint32 perm = pt_get_page_permissions(e->env_page_directory, wse->virtual_address);
+		if(!(perm & PERM_PRESENT)){ // In SecondList
+			return wse;
 		}
 	}
+	return NULL;
 }
 
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
+{
+	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
+	{
+		struct WorkingSetElement *wse = get_wse_of_va(virtual_address);
+		if(wse != NULL){ // Exists in WS List either ActiveList or SecondList
+			unmap_frame(e->env_page_directory, wse->virtual_address);
+
+			uint32 perm = pt_get_page_permissions(e->env_page_directory, wse->virtual_address);
+			if(perm & PERM_PRESENT){ // In ActiveList
+
+				LIST_REMOVE(&(e->ActiveList), wse);
+				/*EDIT*/kfree(wse);
+				if(LIST_SIZE(&(e->SecondList)) != 0){ // SecondList NOT empty
+					shift_Second_list(e);
+				}
+
+			}else{ // In SecondList
+				LIST_REMOVE(&(e->SecondList), wse);
+				kfree(wse);
+			}
+
+			//update va_to_wse arr
+			set_wse_of_va(virtual_address, NULL);
+		}
+
+	}
+	else
+	{
+		int index = __getIndex(virtual_address);
+		struct WorkingSetElement *wse = get_wse_of_va(virtual_address);
+		if(wse != NULL){ // Exists in WS List
+
+			if (e->page_last_WS_element == wse)
+			{
+				e->page_last_WS_element = LIST_NEXT(wse);
+			}
+			LIST_REMOVE(&(e->page_WS_list), wse);
+			kfree(wse);
+
+			//update va_to_wse arr
+			set_wse_of_va(virtual_address, NULL);
+		}
+	}
+
+}
+
+/*
+inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // old func => works
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
@@ -176,7 +154,8 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 				unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
 				LIST_REMOVE(&(e->ActiveList), ptr_WS_element);
 
-				/*EDIT*/kfree(ptr_WS_element);
+				//EDIT
+				kfree(ptr_WS_element);
 
 				if(ptr_tmp_WS_element != NULL)
 				{
@@ -201,7 +180,8 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 
 					kfree(ptr_WS_element);
 
-					/*EDIT*/break;
+					//EDIT
+					break;
 				}
 			}
 		}
@@ -226,7 +206,7 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 		}
 	}
 }
-
+*/
 void env_page_ws_print(struct Env *e)
 {
 	return;

@@ -15,6 +15,21 @@
 // 0 means don't bypass the PAGE FAULT
 uint8 bypassInstrLength = 0;
 
+struct WorkingSetElement* va_to_WSE[(USER_LIMIT - USER_HEAP_START) / PAGE_SIZE]; // array holds the ws_element of each USER HEAP or USER STACK va
+int __getIndex(uint32 virtual_address)
+{
+	int index = (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE;
+	return index;
+}
+
+void set_wse_of_va(uint32 virtual_address, struct WorkingSetElement* wse){
+	va_to_WSE[__getIndex(virtual_address)] = wse;
+}
+
+struct WorkingSetElement* get_wse_of_va(uint32 virtual_address){
+	return va_to_WSE[__getIndex(virtual_address)];
+}
+
 //===============================
 // REPLACEMENT STRATEGIES
 //===============================
@@ -98,12 +113,13 @@ bool alloc_and_read_from_file(uint32 fault_va)
 
 void shift_Active_list()
 {
-	// remove the last WS from Active list and insert it to Second list
+	// remove the last WSE from Active list and insert it to Second list
 	struct WorkingSetElement* shift_Elm = LIST_LAST(&curenv->ActiveList);
 	LIST_REMOVE(&curenv->ActiveList, shift_Elm);
 	LIST_INSERT_HEAD(&curenv->SecondList, shift_Elm);
 	pt_set_page_permissions(curenv->env_page_directory, shift_Elm->virtual_address, 0x000, PERM_PRESENT);
 }
+
 
 void page_fault_handler(struct Env * curenv, uint32 fault_va)
 {
@@ -129,6 +145,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		{
 			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
 			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
+
 			// update page_last_WS_element for FIFO and clock algorithm
 			if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
 			{
@@ -144,10 +161,10 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			// Write your code here, remove the panic and write your code
 			//panic("page_fault_handler() FIFO Replacement is not implemented yet...!!");
 
-			// update array
-			//UHva_to_PtrWSelem[__getIndex(fault_va)] = curenv->page_last_WS_element;
+			//update va_to_wse arr
 			uint32 victim_va = curenv->page_last_WS_element->virtual_address;
-			//UHva_to_PtrWSelem[__getIndex(victim_va)] = NULL;
+			set_wse_of_va(fault_va,  curenv->page_last_WS_element);
+			set_wse_of_va(victim_va,  NULL);
 
 			// update virtual_address of the WS
 			curenv->page_last_WS_element->virtual_address = fault_va;
@@ -180,7 +197,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		// Write your code here, remove the panic and write your code
 		//panic("page_fault_handler() LRU Replacement is not implemented yet...!!");
 
-		struct WorkingSetElement* WSElem = get_WSE_from_list(&curenv->SecondList, fault_va);
+		struct WorkingSetElement* WSElem = get_WSE_from_Secondlist(curenv, fault_va);
 		if(WSElem != NULL || LIST_SIZE(&curenv->ActiveList) + LIST_SIZE(&curenv->SecondList) < (curenv->page_WS_max_size))
 		{
 			// LRU placement
@@ -224,6 +241,9 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			struct WorkingSetElement* victim = LIST_LAST(&curenv->SecondList);
 			uint32 victim_va = victim->virtual_address;
 
+			//update va_to_wse arr
+			set_wse_of_va(victim_va, NULL);
+
 			LIST_REMOVE(&curenv->SecondList, victim);
 
 			uint32 perm = pt_get_page_permissions(curenv->env_page_directory, victim_va);
@@ -246,6 +266,9 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			victim->virtual_address = fault_va;
 			LIST_INSERT_HEAD(&curenv->ActiveList, victim);
 			pt_set_page_permissions(curenv->env_page_directory, victim->virtual_address, PERM_PRESENT, 0x000);
+
+			//update va_to_wse arr
+			set_wse_of_va(fault_va, victim);
 		}
 
 		//TODO: [PROJECT'23.MS3 - BONUS] [1] PAGE FAULT HANDLER - O(1) implementation of LRU replacement
