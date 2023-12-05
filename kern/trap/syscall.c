@@ -540,6 +540,9 @@ uint32 syscall(uint32 syscallno, uint32 a1, uint32 a2, uint32 a3, uint32 a4,
 	///2023/
 	//TODO: [PROJECT'23.MS1 - #4] [2] SYSTEM CALLS - Add suitable code her
 
+	case SYS_set_nice_value:
+		env_set_nice(curenv, a1);
+		return 0;
 	case SYS_get_hard_limit:
 		return (uint32) Usys_getHardLimit();
 		break;

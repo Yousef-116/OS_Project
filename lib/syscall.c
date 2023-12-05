@@ -364,3 +364,8 @@ uint32 sys_getHardLimit()
 {
 	return syscall(SYS_get_hard_limit, 0, 0, 0, 0, 0);
 }
+
+void sys_env_set_nice(uint32 nice_value)
+{
+	syscall(SYS_set_nice_value, (uint32) nice_value, 0, 0, 0, 0);
+}

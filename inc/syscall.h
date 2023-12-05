@@ -58,6 +58,8 @@ enum
 	SYS_allocate_user_mem,
 	// [PROJECT'23.MS2 #11] get hard limit
 	SYS_get_hard_limit,
+	// MS3 - set nice value
+	SYS_set_nice_value,
 	//=====================================================================
 	NSYSCALLS
 };
