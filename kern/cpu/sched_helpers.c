@@ -547,31 +547,60 @@ int env_get_nice(struct Env* e)
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_get_nice
 	//Your code is here
 	//Comment the following line
-	panic("Not implemented yet");
-	return 0;
+	//	panic("Not implemented yet");
+		//return 0;
+
+	return e->nice_value;
 }
 void env_set_nice(struct Env* e, int nice_value)
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_set_nice
 	//Your code is here
 	//Comment the following line
-	panic("Not implemented yet");
+	//panic("Not implemented yet");
+
+	e->nice_value = nice_value;
+
+	fixed_point_t PRIORITY;
+	PRIORITY.f = PRI_MAX - (e->recent_cpu_time /4) - (e->nice_value * 2);
+	int trunc_priority = fix_trunc(PRIORITY);
+
+	if(trunc_priority > PRI_MAX) trunc_priority = PRI_MAX;
+	else if(trunc_priority < 0) trunc_priority = PRI_MIN;
+
+
+	e->priority = trunc_priority;
 }
 int env_get_recent_cpu(struct Env* e)
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_get_recent_cpu
 	//Your code is here
 	//Comment the following line
-	panic("Not implemented yet");
-	return 0;
+//	panic("Not implemented yet");
+//	return 0;
+	fixed_point_t new_recent_value;
+	new_recent_value.f = 100 * e->recent_cpu_time;
+
+    int trunc_recent_cpu = fix_round(new_recent_value);
+
+	return fix_round(new_recent_value);
 }
+int load_avg = 0;
 int get_load_average()
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - get_load_average
 	//Your code is here
 	//Comment the following line
 	panic("Not implemented yet");
-	return 0;
+//	return 0;
+	fixed_point_t new_load_avg;
+	new_load_avg.f = 100 * load_avg ;
+
+
+	//int trunc_load_avg = fix_round(new_load_avg);
+
+	return fix_round(new_load_avg);
 }
 /********* for BSD Priority Scheduler *************/
 //==================================================================================//
+
