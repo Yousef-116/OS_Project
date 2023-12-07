@@ -204,8 +204,27 @@ struct Env* fos_scheduler_BSD()
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - fos_scheduler_BSD
 	//Your code is here
 	//Comment the following line
-	panic("Not implemented yet");
-	return NULL;
+	//panic("Not implemented yet");
+
+	    int highestPriority = -1;
+	    struct Env_Queue* selectedQueue = NULL;
+	    for (int i = 0; i < num_of_ready_queues; i++) {
+	        if (!LIST_EMPTY(&env_ready_queues[i])) {
+	            if (highestPriority == -1 || i < highestPriority) {
+	                highestPriority = i;
+	                selectedQueue = &env_ready_queues[i];
+	            }
+	        }
+	    }
+
+	    if (selectedQueue == NULL) {
+	        return NULL;
+	    }
+	    return NULL;
+
+	    struct Env* nextEnv = selectedQueue->lh_first;
+
+	    return nextEnv;
 }
 
 //========================================
