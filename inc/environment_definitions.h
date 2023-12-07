@@ -8,6 +8,9 @@
 #include <inc/trap.h>
 #include <inc/memlayout.h>
 
+#include <inc/fixed_point.h>
+fixed_point_t load_avg;
+
 // An environment ID 'envid_t' has three parts:
 //
 // +1+---------------21-----------------+--------10--------+
@@ -89,7 +92,7 @@ struct Env {
 
 	int priority;					// Current priority Dr
 	int nice_value;                 //                  Me
-	int recent_cpu_time;            //                  Me
+	fixed_point_t recent_cpu_time;  //                  Me
 
 
 	char prog_name[PROGNAMELEN];	// Program name (to print it via USER.cprintf in multitasking)

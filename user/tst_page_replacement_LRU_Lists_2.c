@@ -43,7 +43,6 @@ void _main(void)
 		ptr++ ; ptr2++ ;
 	}
 
-	cprintf(">> end for loop\n");
 	//===================
 
 	//("STEP 1: checking LRU LISTS after new page FAULTS...\n");

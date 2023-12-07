@@ -35,8 +35,7 @@ void sched_init()
 //=========================
 // [2] Main FOS Scheduler:
 //=========================
-void
-fos_scheduler(void)
+void fos_scheduler(void)
 {
 	//	cprintf("inside scheduler\n");
 
@@ -166,17 +165,13 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 	//Your code is here
 	//Comment the following line
 	//panic("Not implemented yet");
+
+	load_avg = fix_int(0);
+	kclock_set_quantum(quantum);
 	*quantums = quantum;
-
-	// struct Env_Queue*
-	for(int level = 0 ; level < numOfLevels ; level++)
-	{
-		//struct Env_Queue *new_Queue;
-		//struct Env_Queue env_ready_queues[level] = &new_Queue;
-		struct Env_Queue env_ready_queues[level];
-	}
-
+	env_ready_queues = kmalloc(sizeof(struct Env_Queue) * numOfLevels);
 	num_of_ready_queues = numOfLevels;
+
 	//=========================================
 	//DON'T CHANGE THESE LINES=================
 	scheduler_status = SCH_STOPPED;
@@ -206,38 +201,115 @@ struct Env* fos_scheduler_BSD()
 	//Comment the following line
 	//panic("Not implemented yet");
 
-	    int highestPriority = -1;
-	    struct Env_Queue* selectedQueue = NULL;
-	    for (int i = 0; i < num_of_ready_queues; i++) {
-	        if (!LIST_EMPTY(&env_ready_queues[i])) {
-	            if (highestPriority == -1 || i < highestPriority) {
-	                highestPriority = i;
-	                selectedQueue = &env_ready_queues[i];
-	            }
-	        }
-	    }
+	for (int i = num_of_ready_queues-1; i >= 0; --i)
+	{
+		if (!LIST_EMPTY(&env_ready_queues[i]))
+		{
+			return LIST_FIRST(&env_ready_queues[i]);
+		}
+	}
 
-	    if (selectedQueue == NULL) {
-	        return NULL;
-	    }
-	    return NULL;
-
-	    struct Env* nextEnv = selectedQueue->lh_first;
-
-	    return nextEnv;
+	return NULL;
 }
 
 //========================================
 // [8] Clock Interrupt Handler
 //	  (Automatically Called Every Quantum)
 //========================================
+int Seconds = -1;
 void clock_interrupt_handler()
 {
+	cprintf(">> clock_interrupt_handler()... Seconds = %d... ", Seconds);
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
 	{
+		int seconds = (timer_ticks()*(*quantums))/1000;
+		int num_of_ready_processes = 0;
+		for(int i = 0; i < num_of_ready_queues ; i++)
+		{
+			num_of_ready_processes += queue_size(&env_ready_queues[i]);
+		}
+		cprintf("seconds = %d\n", seconds);
+		//𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  = (59/60) × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  + (1/60) × 𝑟𝑒𝑎𝑑𝑦_𝑝𝑟𝑜𝑐𝑒𝑠𝑠𝑒𝑠.
+		if(seconds != Seconds)
+		{
+			Seconds = seconds;
+			cprintf(">> one second passed\n");
+			//recalculated once per second
+			{
+				fixed_point_t L1 = fix_int(59);
+				L1 = fix_unscale(L1, 60);
+				L1 = fix_mul(L1, load_avg);
+
+				fixed_point_t L2 = fix_int(1);
+				L1 = fix_unscale(L2, 60);
+				L1 = fix_scale(L2, num_of_ready_processes);
+
+				load_avg = fix_add(L1, L2);
+			}
+
+			//==================================================================
+
+			//update recent cpu time once per second for every process
+			{
+				cprintf(">> update recent cpu time once per second for every process\n");
+				for(int i = 0; i < num_of_ready_queues ; i++)
+				{
+					struct Env *all_env;
+					LIST_FOREACH(all_env, &env_ready_queues[i])
+					{
+						if(all_env != NULL)
+						{
+							fixed_point_t R1 = fix_scale(load_avg, 2);
+							fixed_point_t R2 = fix_add(R1, fix_int(1));
+							R1 = fix_div(R1, R2);
+							R2 = fix_mul(R1, all_env->recent_cpu_time);
+							all_env->recent_cpu_time = fix_add(R2, fix_int(all_env->nice_value));
+						}
+					}
+				}
+			}
+		}
+
+		//𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  = (2 × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔)/(2 × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  + 1) × 𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  + nice.
+		struct Env *run_env = fos_scheduler_BSD();
+		if(run_env != NULL)
+		{
+			fixed_point_t p1 = fix_scale(load_avg, 2);
+			fixed_point_t p2 = fix_add(p1, fix_int(1));
+			p1 = fix_div(p1, p2);
+			p2 = fix_mul(p1, run_env->recent_cpu_time);
+			run_env->recent_cpu_time = fix_add(p2, fix_int(run_env->nice_value));
+		}
 
 
+		//recalculated every 4th tick
+		if(timer_ticks()%4 == 0)
+		{
+			for(int i = 0; i < num_of_ready_queues ; i++)
+			{
+				struct Env *all_env;
+				LIST_FOREACH(all_env, &env_ready_queues[i])
+				{
+					if(all_env != NULL)
+					{
+						//priority = PRI_MAX - (𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4) - (nice × 2).
+						fixed_point_t p1 = fix_int(PRI_MAX);                          //PRI_MAX
+						fixed_point_t p2 = fix_unscale(all_env->recent_cpu_time ,4);  //(𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4)
+						fixed_point_t PRIORITY = fix_sub(p1, p2);
 
+						fixed_point_t p3 = fix_int(all_env->nice_value * 2);          //(nice × 2)
+						PRIORITY = fix_sub(PRIORITY, p3);
+
+						int trunc_priority = fix_trunc(PRIORITY);
+
+						if(trunc_priority > PRI_MAX) trunc_priority = PRI_MAX;
+						else if(trunc_priority < PRI_MIN) trunc_priority = PRI_MIN;
+
+						all_env->priority = trunc_priority;
+					}
+				}
+			}
+		}
 	}
 
 
