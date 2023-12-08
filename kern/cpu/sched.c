@@ -166,8 +166,9 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 	//Comment the following line
 	//panic("Not implemented yet");
 
+	cprintf("here==============================\n");
 	load_avg = fix_int(0);
-	kclock_set_quantum(quantum);
+//	kclock_set_quantum(quantum);
 	*quantums = quantum;
 	env_ready_queues = kmalloc(sizeof(struct Env_Queue) * numOfLevels);
 	num_of_ready_queues = numOfLevels;
@@ -201,6 +202,7 @@ struct Env* fos_scheduler_BSD()
 	//Comment the following line
 	//panic("Not implemented yet");
 
+//	cprintf("num_of_ready_queues = %d\n", num_of_ready_queues);
 	for (int i = num_of_ready_queues-1; i >= 0; --i)
 	{
 		if (!LIST_EMPTY(&env_ready_queues[i]))
@@ -219,16 +221,28 @@ struct Env* fos_scheduler_BSD()
 int Seconds = -1;
 void clock_interrupt_handler()
 {
-	cprintf(">> clock_interrupt_handler()... Seconds = %d... ", Seconds);
+	cprintf("\n\n>> clock_interrupt_handler()... Seconds = %d... ", Seconds);
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
 	{
-		int seconds = (timer_ticks()*(*quantums))/1000;
+		int seconds = ROUNDDOWN(timer_ticks()*(*quantums), 1000)/1000;
+		cprintf("quantum = %d,  timer_ticks() = %d,  seconds = %d\n", *quantums, timer_ticks(), seconds);
 		int num_of_ready_processes = 0;
+		int num_of_not_ready_processes = 0;
 		for(int i = 0; i < num_of_ready_queues ; i++)
 		{
-			num_of_ready_processes += queue_size(&env_ready_queues[i]);
+//			num_of_ready_processes += queue_size(&env_ready_queues[i]);
+
+			struct Env *all_env;
+			LIST_FOREACH(all_env, &env_ready_queues[i])
+			{
+				if(all_env->env_status == ENV_READY)
+					num_of_ready_processes++;
+				else
+					num_of_not_ready_processes++;
+			}
 		}
-		cprintf("seconds = %d\n", seconds);
+		cprintf("num_of_ready_processes = %d... ", num_of_ready_processes);
+		cprintf("num_of_not_ready_processes = %d\n", num_of_not_ready_processes);
 		//𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  = (59/60) × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  + (1/60) × 𝑟𝑒𝑎𝑑𝑦_𝑝𝑟𝑜𝑐𝑒𝑠𝑠𝑒𝑠.
 		if(seconds != Seconds)
 		{
@@ -238,13 +252,17 @@ void clock_interrupt_handler()
 			{
 				fixed_point_t L1 = fix_int(59);
 				L1 = fix_unscale(L1, 60);
+				cprintf("59/60=%d\n", L1);
 				L1 = fix_mul(L1, load_avg);
 
 				fixed_point_t L2 = fix_int(1);
-				L1 = fix_unscale(L2, 60);
-				L1 = fix_scale(L2, num_of_ready_processes);
+				L2 = fix_unscale(L2, 60);
+				cprintf("1/60=%d\n", L2);
+				L2 = fix_scale(L2, num_of_ready_processes);
 
+				cprintf(">> load_avg recalculated... old=%d, ", load_avg);
 				load_avg = fix_add(L1, L2);
+				cprintf("new=%d\n", load_avg);
 			}
 
 			//==================================================================
@@ -270,19 +288,17 @@ void clock_interrupt_handler()
 			}
 		}
 
+		//𝒓𝒆𝒄𝒆𝒏𝒕_𝒄𝒑𝒖: updated on each timer tick for running process
 		//𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  = (2 × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔)/(2 × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  + 1) × 𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  + nice.
-		struct Env *run_env = fos_scheduler_BSD();
-		if(run_env != NULL)
-		{
-			fixed_point_t p1 = fix_scale(load_avg, 2);
-			fixed_point_t p2 = fix_add(p1, fix_int(1));
-			p1 = fix_div(p1, p2);
-			p2 = fix_mul(p1, run_env->recent_cpu_time);
-			run_env->recent_cpu_time = fix_add(p2, fix_int(run_env->nice_value));
-		}
+		cprintf(">> running process id = %d\n", curenv->env_id);
+		fixed_point_t p1 = fix_scale(load_avg, 2);
+		fixed_point_t p2 = fix_add(p1, fix_int(1));
+		p1 = fix_div(p1, p2);
+		p2 = fix_mul(p1, curenv->recent_cpu_time);
+		curenv->recent_cpu_time = fix_add(p2, fix_int(curenv->nice_value));
 
 
-		//recalculated every 4th tick
+		//Priority: recalculated every 4th tick.
 		if(timer_ticks()%4 == 0)
 		{
 			for(int i = 0; i < num_of_ready_queues ; i++)

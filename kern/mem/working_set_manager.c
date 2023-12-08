@@ -209,7 +209,6 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // old
 */
 void env_page_ws_print(struct Env *e)
 {
-	return;
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
 		int i = 0;

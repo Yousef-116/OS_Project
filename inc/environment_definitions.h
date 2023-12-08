@@ -9,7 +9,6 @@
 #include <inc/memlayout.h>
 
 #include <inc/fixed_point.h>
-fixed_point_t load_avg;
 
 // An environment ID 'envid_t' has three parts:
 //
