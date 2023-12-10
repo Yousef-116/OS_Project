@@ -552,6 +552,16 @@ int env_get_nice(struct Env* e)
 
 	return e->nice_value;
 }
+
+void update_Priority(struct Env* e, int trunc_priority)
+{
+	int old_priority = e->priority;
+	e->priority = trunc_priority;
+
+	LIST_REMOVE(&env_ready_queues[old_priority-1], e);
+	LIST_INSERT_TAIL(&env_ready_queues[trunc_priority-1], e);
+}
+
 void env_set_nice(struct Env* e, int nice_value)
 {
 	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_set_nice
@@ -562,7 +572,7 @@ void env_set_nice(struct Env* e, int nice_value)
 	e->nice_value = nice_value;
 
 	//priority = PRI_MAX - (𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4) - (nice × 2).
-	fixed_point_t p1 = fix_int(PRI_MAX);                    //PRI_MAX
+	fixed_point_t p1 = fix_int(num_of_ready_queues);        //PRI_MAX
 	fixed_point_t p2 = fix_unscale(e->recent_cpu_time ,4);  //(𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4)
 	fixed_point_t PRIORITY = fix_sub(p1, p2);
 
@@ -571,10 +581,12 @@ void env_set_nice(struct Env* e, int nice_value)
 
 	int trunc_priority = fix_trunc(PRIORITY);
 
-	if(trunc_priority > PRI_MAX) trunc_priority = PRI_MAX;
+	if(trunc_priority > num_of_ready_queues) trunc_priority = num_of_ready_queues;
 	else if(trunc_priority < PRI_MIN) trunc_priority = PRI_MIN;
 
+//	update_Priority(e, trunc_priority);
 	e->priority = trunc_priority;
+	LIST_INSERT_TAIL(&env_ready_queues[trunc_priority-1], e);
 }
 int env_get_recent_cpu(struct Env* e)
 {
