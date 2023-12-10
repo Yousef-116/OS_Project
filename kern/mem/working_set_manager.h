@@ -12,6 +12,7 @@
 
 // Page WS helper functions ===================================================
 void env_page_ws_print(struct Env *curenv);
+inline void env_page_ws_invalidate_O1(struct Env* e, uint32 virtual_address);
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address);
 
 // Our WS functions ===========================================================

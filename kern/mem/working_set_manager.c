@@ -92,54 +92,54 @@ struct WorkingSetElement *get_WSE_from_Secondlist(struct Env* e, uint32 virtual_
 	return NULL;
 }
 
-inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
-{
-	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
-	{
-		struct WorkingSetElement *wse = get_wse_of_va(virtual_address);
-		if(wse != NULL){ // Exists in WS List either ActiveList or SecondList
-			unmap_frame(e->env_page_directory, wse->virtual_address);
+//inline void env_page_ws_invalidate_O1(struct Env* e, uint32 virtual_address)
+//{
+//	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
+//	{
+//		struct WorkingSetElement *wse = get_wse_of_va(virtual_address);
+//		if(wse != NULL){ // Exists in WS List either ActiveList or SecondList
+//			unmap_frame(e->env_page_directory, wse->virtual_address);
+//
+//			uint32 perm = pt_get_page_permissions(e->env_page_directory, wse->virtual_address);
+//			if(perm & PERM_PRESENT){ // In ActiveList
+//
+//				LIST_REMOVE(&(e->ActiveList), wse);
+//				/*EDIT*/kfree(wse);
+//				if(LIST_SIZE(&(e->SecondList)) != 0){ // SecondList NOT empty
+//					shift_Second_list(e);
+//				}
+//
+//			}else{ // In SecondList
+//				LIST_REMOVE(&(e->SecondList), wse);
+//				kfree(wse);
+//			}
+//
+//			//update va_to_wse arr
+//			set_wse_of_va(virtual_address, NULL);
+//		}
+//
+//	}
+//	else
+//	{
+//		int index = __getIndex(virtual_address);
+//		struct WorkingSetElement *wse = get_wse_of_va(virtual_address);
+//		if(wse != NULL){ // Exists in WS List
+//
+//			if (e->page_last_WS_element == wse)
+//			{
+//				e->page_last_WS_element = LIST_NEXT(wse);
+//			}
+//			LIST_REMOVE(&(e->page_WS_list), wse);
+//			kfree(wse);
+//
+//			//update va_to_wse arr
+//			set_wse_of_va(virtual_address, NULL);
+//		}
+//	}
+//
+//}
 
-			uint32 perm = pt_get_page_permissions(e->env_page_directory, wse->virtual_address);
-			if(perm & PERM_PRESENT){ // In ActiveList
 
-				LIST_REMOVE(&(e->ActiveList), wse);
-				/*EDIT*/kfree(wse);
-				if(LIST_SIZE(&(e->SecondList)) != 0){ // SecondList NOT empty
-					shift_Second_list(e);
-				}
-
-			}else{ // In SecondList
-				LIST_REMOVE(&(e->SecondList), wse);
-				kfree(wse);
-			}
-
-			//update va_to_wse arr
-			set_wse_of_va(virtual_address, NULL);
-		}
-
-	}
-	else
-	{
-		int index = __getIndex(virtual_address);
-		struct WorkingSetElement *wse = get_wse_of_va(virtual_address);
-		if(wse != NULL){ // Exists in WS List
-
-			if (e->page_last_WS_element == wse)
-			{
-				e->page_last_WS_element = LIST_NEXT(wse);
-			}
-			LIST_REMOVE(&(e->page_WS_list), wse);
-			kfree(wse);
-
-			//update va_to_wse arr
-			set_wse_of_va(virtual_address, NULL);
-		}
-	}
-
-}
-
-/*
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // old func => works
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
@@ -206,7 +206,7 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address) // old
 		}
 	}
 }
-*/
+
 void env_page_ws_print(struct Env *e)
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))

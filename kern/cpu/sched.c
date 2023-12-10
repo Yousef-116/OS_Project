@@ -166,12 +166,18 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 	//Comment the following line
 	//panic("Not implemented yet");
 
-	cprintf("here==============================\n");
+	sched_delete_ready_queues();
+	//cprintf("here==============================\n");
 	load_avg = fix_int(0);
 //	kclock_set_quantum(quantum);
 	*quantums = quantum;
 	env_ready_queues = kmalloc(sizeof(struct Env_Queue) * numOfLevels);
 	num_of_ready_queues = numOfLevels;
+
+	for(int i = 0 ; i < numOfLevels ; i++)
+	{
+	  init_queue(&env_ready_queues[i]);
+	}
 
 	//=========================================
 	//DON'T CHANGE THESE LINES=================
@@ -221,11 +227,11 @@ struct Env* fos_scheduler_BSD()
 int Seconds = -1;
 void clock_interrupt_handler()
 {
-	cprintf("\n\n>> clock_interrupt_handler()... Seconds = %d... ", Seconds);
+	//cprintf("\n\n>> clock_interrupt_handler()... Seconds = %d... ", Seconds);
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
 	{
 		int seconds = ROUNDDOWN(timer_ticks()*(*quantums), 1000)/1000;
-		cprintf("quantum = %d,  timer_ticks() = %d,  seconds = %d\n", *quantums, timer_ticks(), seconds);
+		//cprintf("quantum = %d,  timer_ticks() = %d,  seconds = %d\n", *quantums, timer_ticks(), seconds);
 		int num_of_ready_processes = 0;
 		int num_of_not_ready_processes = 0;
 		for(int i = 0; i < num_of_ready_queues ; i++)
@@ -241,35 +247,35 @@ void clock_interrupt_handler()
 					num_of_not_ready_processes++;
 			}
 		}
-		cprintf("num_of_ready_processes = %d... ", num_of_ready_processes);
-		cprintf("num_of_not_ready_processes = %d\n", num_of_not_ready_processes);
+		//cprintf("num_of_ready_processes = %d... ", num_of_ready_processes);
+		//cprintf("num_of_not_ready_processes = %d\n", num_of_not_ready_processes);
 		//𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  = (59/60) × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  + (1/60) × 𝑟𝑒𝑎𝑑𝑦_𝑝𝑟𝑜𝑐𝑒𝑠𝑠𝑒𝑠.
 		if(seconds != Seconds)
 		{
 			Seconds = seconds;
-			cprintf(">> one second passed\n");
+		//	cprintf(">> one second passed\n");
 			//recalculated once per second
 			{
 				fixed_point_t L1 = fix_int(59);
 				L1 = fix_unscale(L1, 60);
-				cprintf("59/60=%d\n", L1);
+				//cprintf("59/60=%d\n", L1);
 				L1 = fix_mul(L1, load_avg);
 
 				fixed_point_t L2 = fix_int(1);
 				L2 = fix_unscale(L2, 60);
-				cprintf("1/60=%d\n", L2);
+				//cprintf("1/60=%d\n", L2);
 				L2 = fix_scale(L2, num_of_ready_processes);
 
-				cprintf(">> load_avg recalculated... old=%d, ", load_avg);
+				//cprintf(">> load_avg recalculated... old=%d, ", load_avg);
 				load_avg = fix_add(L1, L2);
-				cprintf("new=%d\n", load_avg);
+				//cprintf("new=%d\n", load_avg);
 			}
 
 			//==================================================================
 
 			//update recent cpu time once per second for every process
 			{
-				cprintf(">> update recent cpu time once per second for every process\n");
+				//cprintf(">> update recent cpu time once per second for every process\n");
 				for(int i = 0; i < num_of_ready_queues ; i++)
 				{
 					struct Env *all_env;

@@ -131,7 +131,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		uint32 wsSize = env_page_ws_get_size(curenv);
 #endif
 
-	cprintf(">> fault_va = %x\n", fault_va);
+	//cprintf(">> fault_va = %x\n", fault_va);
 
 	if(isPageReplacmentAlgorithmFIFO())
 	{
@@ -195,7 +195,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		// Write your code here, remove the panic and write your code
 		//panic("page_fault_handler() LRU Replacement is not implemented yet...!!");
 
-		struct WorkingSetElement* WSElem = get_WSE_from_Secondlist(curenv, fault_va);
+		struct WorkingSetElement* WSElem = get_WSE_from_list(&curenv->SecondList, fault_va);
 		if(WSElem != NULL || LIST_SIZE(&curenv->ActiveList) + LIST_SIZE(&curenv->SecondList) < (curenv->page_WS_max_size))
 		{
 			// LRU placement
