@@ -210,16 +210,20 @@ struct Env* fos_scheduler_BSD()
 	//panic("Not implemented yet");
 
 //	cprintf("num_of_ready_queues = %d\n", num_of_ready_queues);
+	if(curenv != NULL)
+	{
+		cprintf(">> current process [%d] not finished yet...  so insert it in level %d\n", curenv->env_id, curenv->priority);
+		LIST_INSERT_TAIL(&env_ready_queues[curenv->priority], curenv);
+	}
+	else cprintf(">> current process [Allah a3lam] is finished el7\n");
+
 	for (int i = num_of_ready_queues-1; i >= 0; --i)
 	{
 		if (!LIST_EMPTY(&env_ready_queues[i]))
 		{
 			struct Env* next_run = LIST_FIRST(&env_ready_queues[i]);
-//			LIST_REMOVE(&env_ready_queues[i], next_run);
-//			if(curenv != NULL)
-//			{
-//				LIST_INSERT_TAIL(&env_ready_queues[curenv->priority-1], curenv);
-//			}
+			cprintf(">> next process [%d] with priority = %d\n", next_run->env_id, i);
+			LIST_REMOVE(&env_ready_queues[i], next_run);
 			return next_run;
 		}
 	}
@@ -231,15 +235,16 @@ struct Env* fos_scheduler_BSD()
 // [8] Clock Interrupt Handler
 //	  (Automatically Called Every Quantum)
 //========================================
-int Seconds = -1;
+uint32 Seconds = 0;
 void clock_interrupt_handler()
 {
-	//cprintf("\n\n>> clock_interrupt_handler()... Seconds = %d... ", Seconds);
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
 	if(isSchedMethodBSD())
 	{
-		int seconds = ROUNDDOWN(timer_ticks()*(*quantums), 1000)/1000;
-		cprintf("quantum = %d,  timer_ticks() = %d,  seconds = %d\n", *quantums, timer_ticks(), seconds);
+		cprintf("\n=====================================================================\n");
+		sched_print_all();
+		uint32 seconds = ROUNDDOWN(timer_ticks()*(*quantums), 1000)/1000;
+		cprintf("Seconds = %d,  quantum = %d,  timer_ticks() = %d,  seconds = %d\n",Seconds, *quantums, timer_ticks(), seconds);
 		int num_of_ready_processes = 0;
 		for(int i = 0; i < num_of_ready_queues ; i++)
 		{
@@ -305,34 +310,20 @@ void clock_interrupt_handler()
 
 
 		//Priority: recalculated every 4th tick.
-		if(timer_ticks()%4 == 0)
+		if((timer_ticks()+1)%4 == 0)
 		{
 			for(int i = 0; i < num_of_ready_queues ; i++)
 			{
-				struct Env *all_env;
+				struct Env *all_env, *lastEnv = LIST_LAST(&env_ready_queues[i]);
 				LIST_FOREACH(all_env, &env_ready_queues[i])
 				{
-					if(all_env != NULL)
-					{
-						//priority = PRI_MAX - (𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4) - (nice × 2).
-						fixed_point_t p1 = fix_int(PRI_MAX);                          //PRI_MAX
-						fixed_point_t p2 = fix_unscale(all_env->recent_cpu_time ,4);  //(𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4)
-						fixed_point_t PRIORITY = fix_sub(p1, p2);
-
-						fixed_point_t p3 = fix_int(all_env->nice_value * 2);          //(nice × 2)
-						PRIORITY = fix_sub(PRIORITY, p3);
-
-						int trunc_priority = fix_trunc(PRIORITY);
-
-						if(trunc_priority > PRI_MAX) trunc_priority = PRI_MAX;
-						else if(trunc_priority < PRI_MIN) trunc_priority = PRI_MIN;
-
-						all_env->priority = trunc_priority;
-//						update_Priority(all_env, trunc_priority);
-					}
+					update_Priority(all_env);
+					if(all_env == lastEnv)
+						break;
 				}
 			}
 		}
+		cprintf("---------------------------------------------------------------------\n\n");
 	}
 
 

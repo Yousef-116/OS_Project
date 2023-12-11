@@ -553,26 +553,12 @@ int env_get_nice(struct Env* e)
 	return e->nice_value;
 }
 
-void update_Priority(struct Env* e, int trunc_priority)
+void update_Priority(struct Env* e)
 {
-	int old_priority = e->priority;
-	e->priority = trunc_priority;
-
-	LIST_REMOVE(&env_ready_queues[old_priority-1], e);
-	LIST_INSERT_TAIL(&env_ready_queues[trunc_priority-1], e);
-}
-
-void env_set_nice(struct Env* e, int nice_value)
-{
-	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_set_nice
-	//Your code is here
-	//Comment the following line
-	//panic("Not implemented yet");
-
-	e->nice_value = nice_value;
-
 	//priority = PRI_MAX - (𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4) - (nice × 2).
-	fixed_point_t p1 = fix_int(num_of_ready_queues);        //PRI_MAX
+	int max_pri = num_of_ready_queues - 1;
+
+	fixed_point_t p1 = fix_int(max_pri);                    //PRI_MAX
 	fixed_point_t p2 = fix_unscale(e->recent_cpu_time ,4);  //(𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4)
 	fixed_point_t PRIORITY = fix_sub(p1, p2);
 
@@ -584,9 +570,30 @@ void env_set_nice(struct Env* e, int nice_value)
 	if(trunc_priority > num_of_ready_queues) trunc_priority = num_of_ready_queues;
 	else if(trunc_priority < PRI_MIN) trunc_priority = PRI_MIN;
 
-//	update_Priority(e, trunc_priority);
+	int old_priority = e->priority;
 	e->priority = trunc_priority;
-	LIST_INSERT_TAIL(&env_ready_queues[trunc_priority-1], e);
+	cprintf(">> update priority of env [%d]... old = %d, new = %d... so we ", e->env_id, old_priority, trunc_priority);
+
+	if(old_priority != trunc_priority)
+	{
+		cprintf("change it's level\n");
+		LIST_REMOVE(&env_ready_queues[old_priority], e);
+		LIST_INSERT_TAIL(&env_ready_queues[trunc_priority], e);
+	}
+	else cprintf("keep it in it's level\n");
+}
+
+void env_set_nice(struct Env* e, int nice_value)
+{
+	//TODO: [PROJECT'23.MS3 - #3] [2] BSD SCHEDULER - env_set_nice
+	//Your code is here
+	//Comment the following line
+	//panic("Not implemented yet");
+
+	cprintf(">> set nice value\n");
+	e->nice_value = nice_value;
+	update_Priority(e);
+
 }
 int env_get_recent_cpu(struct Env* e)
 {
