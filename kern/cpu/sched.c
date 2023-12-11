@@ -313,6 +313,7 @@ void clock_interrupt_handler()
 		if((timer_ticks()+1)%4 == 0)
 		{
 			uint8 envManga[5000] = { };
+
 			for(int i = 0; i < num_of_ready_queues ; i++)
 			{
 				struct Env *all_env;
@@ -324,7 +325,7 @@ void clock_interrupt_handler()
 						update_Priority(all_env);
 						envManga[all_env->env_id] = 1;
 					}
-//
+					else break;
 				}
 			}
 		}

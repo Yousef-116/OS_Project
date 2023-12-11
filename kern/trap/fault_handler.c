@@ -131,7 +131,8 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		uint32 wsSize = env_page_ws_get_size(curenv);
 #endif
 
-	//cprintf(">> fault_va = %x\n", fault_va);
+	fault_va = ROUNDDOWN(fault_va, PAGE_SIZE);
+//	cprintf(">> fault_va = %x\n", fault_va);
 
 	if(isPageReplacmentAlgorithmFIFO())
 	{

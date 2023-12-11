@@ -128,7 +128,7 @@ void* index_to_Uva(int index) {
 
 void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 {
-//	cprintf(">> allocate user mem called\n");
+//	cprintf("\n>> allocate user mem called\n\n");
 	/*=============================================================================*/
 	//TODO: [PROJECT'23.MS2 - #10] [2] USER HEAP - allocate_user_mem() [Kernel Side]
 	/*REMOVE THESE LINES BEFORE START CODING */

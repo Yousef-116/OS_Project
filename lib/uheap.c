@@ -133,6 +133,7 @@ void* malloc(uint32 size)
 		//cprintf("index = %d\n", index);
 		_1stVa = index_to_Uva(index);
 		numOfUnmarkedPages -= num_of_req_pages;
+//		cprintf("\n>>in malloc marked pages %d-%d\n\n", index, index+num_of_req_pages-1);
 		sys_allocate_user_mem((uint32)_1stVa, size);
 
 		return _1stVa;
@@ -154,6 +155,7 @@ void free(void* virtual_address)
 	// Write your code here, remove the panic and write your code
 	//panic("free() is not implemented yet...!!");
 
+//	cprintf("\n>> in free va %x\n\n", virtual_address);
 	if((uint32)virtual_address >= USER_HEAP_START && (uint32)virtual_address <(uint32)sys_sbrk(0)) // block allocator
 	{
 		//cprintf("sbrk ======================= %x\n\n\n\n\n\n" , sbrk(0));
@@ -166,6 +168,7 @@ void free(void* virtual_address)
 		uint32 size = umanga[index] * PAGE_SIZE;
 
 		numOfUnmarkedPages += umanga[index];
+//		cprintf("\n>>in free umarked pages %d-%d\n\n", index, index+umanga[index]-1);
 		umanga[index] *= -1;
 
 		if (umanga[index - umanga[index]] < 0) // next are free -> merge

@@ -306,7 +306,7 @@ void trap(struct Trapframe *tf)
 
 /*2022*/
 uint32 last_fault_va = 0;
-//struct Env* last_env = NULL;
+struct Env* last_faulted_env = NULL;
 int8 num_repeated_fault  = 0;
 void fault_handler(struct Trapframe *tf)
 {
@@ -324,7 +324,7 @@ void fault_handler(struct Trapframe *tf)
 
 	/******************************************************/
 	/*2022*///If same fault va for 3 times, then panic
-	if (/*curenv == last_env && */last_fault_va == fault_va)
+	if (curenv == last_faulted_env && last_fault_va == fault_va)
 	{
 		num_repeated_fault++ ;
 		if (num_repeated_fault == 3)
@@ -338,7 +338,7 @@ void fault_handler(struct Trapframe *tf)
 		num_repeated_fault = 0;
 	}
 	last_fault_va = fault_va ;
-//	last_env = curenv;
+	last_faulted_env = curenv;
 	/******************************************************/
 	//2017: Check stack overflow for Kernel
 	if (!userTrap)
@@ -387,6 +387,16 @@ void fault_handler(struct Trapframe *tf)
 			fault_va = ROUNDDOWN(fault_va, PAGE_SIZE);
 			int perms = pt_get_page_permissions(faulted_env->env_page_directory, fault_va);
 //			cprintf(">> Permission = %x, faulted_va = %x \n" , perms, fault_va);
+
+//			if((fault_va >= faulted_env->dynamic_allocate_USER_heap_start && fault_va < USER_HEAP_MAX)){
+//				cprintf(">> the va is in user heap\n");
+//			}
+//			else if((fault_va >= USTACKBOTTOM && fault_va < USTACKTOP)){
+//				cprintf(">> the va is in stack\n");
+//			}
+//			else cprintf(">> the va is not stack nor heap\n");
+//			cprintf(">> user heap start = %x... ", faulted_env->dynamic_allocate_USER_heap_start + PAGE_SIZE);
+//			cprintf(">> user heap max = %x\n", USER_HEAP_MAX);
 
 			// Unmarked and in user heap
 			if (!(perms & MARKED) && (fault_va >= faulted_env->dynamic_allocate_USER_heap_start && fault_va < USER_HEAP_MAX)){

@@ -480,6 +480,7 @@ void* sys_sbrk(int increment) {
 				//cprintf("create page table\n");
 				create_page_table(curenv->env_page_directory, va);
 			}
+//			cprintf(">> mark va %x\n", va);
 			pt_set_page_permissions(curenv->env_page_directory, va, MARKED | PERM_WRITEABLE, 0x000);
 		}
 
@@ -510,6 +511,7 @@ void* sys_sbrk(int increment) {
 			zbt_el_zabt(curenv);
 
 			temp_brk += PAGE_SIZE;
+//			cprintf(">> unmark temp_brk %x\n", temp_brk);
 			pt_set_page_permissions(curenv->env_page_directory, temp_brk, 0x000, MARKED);
 		}
 		curenv->dynamic_allocate_USER_heap_break = new_brk;
