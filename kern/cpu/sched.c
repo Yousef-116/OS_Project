@@ -257,13 +257,13 @@ void clock_interrupt_handler()
 		//𝒓𝒆𝒄𝒆𝒏𝒕_𝒄𝒑𝒖: updated on each timer tick for running process ==> incremented by 1
 		curenv->recent_cpu_time = fix_add(curenv->recent_cpu_time, fix_int(1));
 
-		//𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  = (59/60) × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  + (1/60) × 𝑟𝑒𝑎𝑑𝑦_𝑝𝑟𝑜𝑐𝑒𝑠𝑠𝑒𝑠.
 		if(seconds != Seconds)
 		{
 			Seconds = seconds;
 			cprintf(">> one second passed\n");
 			//Load avg recalculated once per second
 			{
+				//𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  = (59/60) × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  + (1/60) × 𝑟𝑒𝑎𝑑𝑦_𝑝𝑟𝑜𝑐𝑒𝑠𝑠𝑒𝑠.
 				fixed_point_t L1 = fix_int(59);
 				L1 = fix_unscale(L1, 60);
 				//cprintf("59/60=%d\n", L1);
@@ -312,18 +312,23 @@ void clock_interrupt_handler()
 		//Priority: recalculated every 4th tick.
 		if((timer_ticks()+1)%4 == 0)
 		{
+			uint8 envManga[5000] = { };
 			for(int i = 0; i < num_of_ready_queues ; i++)
 			{
-				struct Env *all_env, *lastEnv = LIST_LAST(&env_ready_queues[i]);
+				struct Env *all_env;
+//				struct Env *all_env, *lastEnv = LIST_LAST(&env_ready_queues[i]);
 				LIST_FOREACH(all_env, &env_ready_queues[i])
 				{
-					update_Priority(all_env);
-					if(all_env == lastEnv)
-						break;
+					if(envManga[all_env->env_id] == 0)
+					{
+						update_Priority(all_env);
+						envManga[all_env->env_id] = 1;
+					}
+//
 				}
 			}
 		}
-		cprintf("---------------------------------------------------------------------\n\n");
+		//cprintf("---------------------------------------------------------------------\n\n");
 	}
 
 
