@@ -199,7 +199,10 @@ void* kmalloc(unsigned int size)
 	{
 		if (size <= DYN_ALLOC_MAX_BLOCK_SIZE) {
 			//cprintf("dynamic allocator\n");
-			return alloc_block_FF(size);
+			void* ret =  alloc_block_FF(size);
+			if(ret == NULL)
+				panic(">> Kernel can't allocate memory\n");
+			return ret;
 		}
 
 		int num_of_req_pages = ROUNDUP(size, PAGE_SIZE) / PAGE_SIZE;
@@ -263,7 +266,8 @@ void* kmalloc(unsigned int size)
 		}
 
 		if (ctr != num_of_req_pages) {
-			return NULL;
+//			return NULL;)
+			panic(">> Kernel can't allocate memory\n");
 		}
 
 		kmanga[index] = num_of_req_pages;
