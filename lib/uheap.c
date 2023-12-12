@@ -53,8 +53,8 @@ void init_uheap()
 	isIntialized = 1;
 	user_hLimit = sys_getHardLimit();
 	umanga_strt = (user_hLimit + PAGE_SIZE - USER_HEAP_START) / PAGE_SIZE;
-	umanga[umanga_strt] = -(umanga_size - umanga_strt);
-	umanga[umanga_size - 1] = umanga[umanga_strt];  // at the end of Brothers
+//	umanga[umanga_strt] = -(umanga_size - umanga_strt);
+//	umanga[umanga_size - 1] = umanga[umanga_strt];  // at the end of Brothers
 	numOfUnmarkedPages = (USER_HEAP_MAX - user_hLimit - PAGE_SIZE) / PAGE_SIZE;
 
 	//cprintf("user_hLimit = %x, umanga_strt = %d\n\n", user_hLimit, umanga_strt);
@@ -94,9 +94,9 @@ void* malloc(uint32 size)
 		}
 		//cprintf("size = %d, num_of_req_pages = %d\n", size, num_of_req_pages);
 
-		uint32 *ptr_page_table = NULL;
 		void* _1stVa;
 		int index = -1;
+		/*
 		for (int i = umanga_strt; i < umanga_size;)
 		{
 			if (umanga[i] < 0)
@@ -125,18 +125,43 @@ void* malloc(uint32 size)
 				i += umanga[i];
 			}
 		}
+		*/
 
-		if (index == -1) {
-			return NULL;
+		int ctr = 0;
+		for(int i = umanga_strt; i<umanga_size; ++i)
+		{
+			if(umanga[i] > 0)
+			{
+				ctr = 0;
+				i += umanga[i]-1;
+			}
+			else
+			{
+				if(ctr == 0) index = i;
+				ctr++;
+				if(ctr == num_of_req_pages)
+				{
+//					cprintf("\n>>in malloc num_of_req_pages = %d.. marked pages %d-%d\n\n", num_of_req_pages, index, i);
+					umanga[index] = num_of_req_pages;
+					_1stVa = index_to_Uva(index);
+					numOfUnmarkedPages -= num_of_req_pages;
+					sys_allocate_user_mem((uint32)_1stVa, size);
+					return _1stVa;
+				}
+			}
 		}
 
-		//cprintf("index = %d\n", index);
-		_1stVa = index_to_Uva(index);
-		numOfUnmarkedPages -= num_of_req_pages;
-//		cprintf("\n>>in malloc marked pages %d-%d\n\n", index, index+num_of_req_pages-1);
-		sys_allocate_user_mem((uint32)_1stVa, size);
+//		if (index == -1) {
+//			return NULL;
+//		}
 
-		return _1stVa;
+//		//cprintf("index = %d\n", index);
+//		_1stVa = index_to_Uva(index);
+//		numOfUnmarkedPages -= num_of_req_pages;
+////		cprintf("\n>>in malloc marked pages %d-%d\n\n", index, index+num_of_req_pages-1);
+//		sys_allocate_user_mem((uint32)_1stVa, size);
+//
+//		return _1stVa;
 	}
 	else if(sys_isUHeapPlacementStrategyBESTFIT())
 	{
@@ -162,23 +187,26 @@ void free(void* virtual_address)
 
 		free_block(virtual_address);
 
-	}else if ((uint32)virtual_address >=user_hLimit + PAGE_SIZE && (uint32)virtual_address < USER_HEAP_MAX)// page allocator
+	}
+	else if ((uint32)virtual_address >=user_hLimit + PAGE_SIZE && (uint32)virtual_address < USER_HEAP_MAX)// page allocator
 	{
 		int index = Uva_to_index(virtual_address);
 		uint32 size = umanga[index] * PAGE_SIZE;
 
 		numOfUnmarkedPages += umanga[index];
 //		cprintf("\n>>in free umarked pages %d-%d\n\n", index, index+umanga[index]-1);
-		umanga[index] *= -1;
+//		umanga[index] *= -1;
+		umanga[index] = 0;
 
+		/*
 		if (umanga[index - umanga[index]] < 0) // next are free -> merge
 		{
 			int i = index - umanga[index];
 			umanga[index] += umanga[i];
 			umanga[i] = 0;
 		}
-		if (umanga[index - 1] < 0) // prev are free -> merge
-				{
+		if (index != umanga_strt && umanga[index - 1] < 0) // prev are free -> merge
+		{
 			umanga[index + umanga[index - 1]] += umanga[index];
 			umanga[index] = 0;
 			int i = umanga[index - 1];
@@ -186,10 +214,11 @@ void free(void* virtual_address)
 			index += i;
 		}
 		umanga[index - umanga[index] - 1] = umanga[index];
+		*/
 
-		//umanga[index] *= -1;
 		sys_free_user_mem((uint32) virtual_address , size);
-	}else
+	}
+	else
 		panic("invalid address (free (USER)) \n");
 }
 

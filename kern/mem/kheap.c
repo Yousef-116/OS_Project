@@ -210,6 +210,7 @@ void* kmalloc(unsigned int size)
 
 		void* _1stVa;
 		int index = -1;
+		/*
 		for (int i = kmanga_strt; i < kmanga_size;) {
 			if (kmanga[i] < 0)
 			{
@@ -239,12 +240,33 @@ void* kmalloc(unsigned int size)
 				i += kmanga[i];
 			}
 		}
+		*/
 
-		if (index == -1) {
+		int ctr = 0;
+		for(int i = kmanga_strt; i<kmanga_size; ++i)
+		{
+			if(kmanga[i] > 0)
+			{
+				ctr = 0;
+				i += kmanga[i]-1;
+			}
+			else
+			{
+				if(ctr == 0) index = i;
+				ctr++;
+				if(ctr == num_of_req_pages)
+				{
+//					cprintf("\n>>in kmalloc num_of_req_pages = %d.. marked pages %d-%d\n\n", num_of_req_pages, index, i);
+					break;
+				}
+			}
+		}
+
+		if (ctr != num_of_req_pages) {
 			return NULL;
 		}
 
-		//kmanga[index] = num_of_req_pages;
+		kmanga[index] = num_of_req_pages;
 		//_1stVa = index*PAGE_SIZE + start;
 		_1stVa = index_to_Kva(index);
 		numOfFreePages -= num_of_req_pages;
@@ -284,8 +306,10 @@ void kfree(void* virtual_address) {
 		}
 
 		numOfFreePages += kmanga[index];
-		kmanga[index] *= -1;
+//		kmanga[index] *= -1;
+		kmanga[index] = 0;
 
+		/*
 		if (kmanga[index - kmanga[index]] < 0) // next are free -> merge
 		{
 			int i = index - kmanga[index];
@@ -301,6 +325,7 @@ void kfree(void* virtual_address) {
 			index += i;
 		}
 		kmanga[index - kmanga[index] - 1] = kmanga[index]; // at the end of Brothers
+		*/
 
 	} else {
 		panic("Invalid address");

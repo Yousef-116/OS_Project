@@ -242,7 +242,7 @@ void clock_interrupt_handler()
 	if(isSchedMethodBSD())
 	{
 		cprintf("\n=====================================================================\n");
-		sched_print_all();
+//		sched_print_all();
 		uint32 seconds = ROUNDDOWN(timer_ticks()*(*quantums), 1000)/1000;
 		cprintf("Seconds = %d,  quantum = %d,  timer_ticks() = %d,  seconds = %d\n",Seconds, *quantums, timer_ticks(), seconds);
 		int num_of_ready_processes = 0;
