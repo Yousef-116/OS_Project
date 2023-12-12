@@ -572,15 +572,15 @@ void update_Priority(struct Env* e)
 
 	int old_priority = e->priority;
 	e->priority = trunc_priority;
-	cprintf(">> update priority of env [%d]... old = %d, new = %d... so we ", e->env_id, old_priority, trunc_priority);
+	//cprintf(">> update priority of env [%d]... old = %d, new = %d... so we ", e->env_id, old_priority, trunc_priority);
 
 	if(old_priority != trunc_priority)
 	{
-		cprintf("change it's level\n");
+		//cprintf("change it's level\n");
 		LIST_REMOVE(&env_ready_queues[old_priority], e);
 		LIST_INSERT_TAIL(&env_ready_queues[trunc_priority], e);
 	}
-	else cprintf("keep it in it's level\n");
+	//else cprintf("keep it in it's level\n");
 }
 
 void env_set_nice(struct Env* e, int nice_value)
@@ -592,7 +592,33 @@ void env_set_nice(struct Env* e, int nice_value)
 
 	cprintf(">> set nice value\n");
 	e->nice_value = nice_value;
-	update_Priority(e);
+	//priority = PRI_MAX - (𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4) - (nice × 2).
+	int max_pri = num_of_ready_queues - 1;
+
+	fixed_point_t p1 = fix_int(max_pri);                    //PRI_MAX
+	fixed_point_t p2 = fix_unscale(e->recent_cpu_time ,4);  //(𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4)
+	fixed_point_t PRIORITY = fix_sub(p1, p2);
+
+	fixed_point_t p3 = fix_int(e->nice_value * 2);          //(nice × 2)
+	PRIORITY = fix_sub(PRIORITY, p3);
+
+	int trunc_priority = fix_trunc(PRIORITY);
+
+	if(trunc_priority > max_pri) trunc_priority = max_pri;
+	else if(trunc_priority < PRI_MIN) trunc_priority = PRI_MIN;
+
+	///int old_priority = e->priority;
+	e->priority = trunc_priority;
+	//cprintf(">> update priority of env [%d]... old = %d, new = %d... so we ", e->env_id, old_priority, trunc_priority);
+//
+//	if(old_priority != trunc_priority)
+//	{
+//		cprintf("change it's level\n");
+//		LIST_REMOVE(&env_ready_queues[old_priority], e);
+//		LIST_INSERT_TAIL(&env_ready_queues[trunc_priority], e);
+//	}
+//	else cprintf("keep it in it's level\n");
+	//update_Priority(e);
 
 }
 int env_get_recent_cpu(struct Env* e)

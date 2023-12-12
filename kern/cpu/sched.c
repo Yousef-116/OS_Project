@@ -212,17 +212,17 @@ struct Env* fos_scheduler_BSD()
 //	cprintf("num_of_ready_queues = %d\n", num_of_ready_queues);
 	if(curenv != NULL)
 	{
-		cprintf(">> current process [%d] not finished yet...  so insert it in level %d\n", curenv->env_id, curenv->priority);
+		//cprintf(">> current process [%d] not finished yet...  so insert it in level %d\n", curenv->env_id, curenv->priority);
 		LIST_INSERT_TAIL(&env_ready_queues[curenv->priority], curenv);
 	}
-	else cprintf(">> current process [Allah a3lam] is finished el7\n");
+	//else cprintf(">> current process [Allah a3lam] is finished el7\n");
 
 	for (int i = num_of_ready_queues-1; i >= 0; --i)
 	{
 		if (!LIST_EMPTY(&env_ready_queues[i]))
 		{
 			struct Env* next_run = LIST_FIRST(&env_ready_queues[i]);
-			cprintf(">> next process [%d] with priority = %d\n", next_run->env_id, i);
+			//cprintf(">> next process [%d] with priority = %d\n", next_run->env_id, i);
 			LIST_REMOVE(&env_ready_queues[i], next_run);
 			return next_run;
 		}
@@ -241,17 +241,17 @@ void clock_interrupt_handler()
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
 	if(isSchedMethodBSD())
 	{
-		cprintf("\n=====================================================================\n");
+		//cprintf("\n=====================================================================\n");
 //		sched_print_all();
 		uint32 seconds = ROUNDDOWN(timer_ticks()*(*quantums), 1000)/1000;
-		cprintf("Seconds = %d,  quantum = %d,  timer_ticks() = %d,  seconds = %d\n",Seconds, *quantums, timer_ticks(), seconds);
+		//cprintf("Seconds = %d,  quantum = %d,  timer_ticks() = %d,  seconds = %d\n",Seconds, *quantums, timer_ticks(), seconds);
 		int num_of_ready_processes = 0;
 		for(int i = 0; i < num_of_ready_queues ; i++)
 		{
 			num_of_ready_processes += queue_size(&env_ready_queues[i]);
 		}
 //		num_of_ready_processes--;
-		cprintf("num_of_ready_processes = %d\n", num_of_ready_processes);
+		//cprintf("num_of_ready_processes = %d\n", num_of_ready_processes);
 
 
 		//𝒓𝒆𝒄𝒆𝒏𝒕_𝒄𝒑𝒖: updated on each timer tick for running process ==> incremented by 1
@@ -260,7 +260,7 @@ void clock_interrupt_handler()
 		if(seconds != Seconds)
 		{
 			Seconds = seconds;
-			cprintf(">> one second passed\n");
+			//cprintf(">> one second passed curenv ID ( %d )\n" ,curenv->env_id);
 			//Load avg recalculated once per second
 			{
 				//𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  = (59/60) × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  + (1/60) × 𝑟𝑒𝑎𝑑𝑦_𝑝𝑟𝑜𝑐𝑒𝑠𝑠𝑒𝑠.
@@ -328,6 +328,23 @@ void clock_interrupt_handler()
 					else break;
 				}
 			}
+			//priority = PRI_MAX - (𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4) - (nice × 2).
+				int max_pri = num_of_ready_queues - 1;
+
+				fixed_point_t p1 = fix_int(max_pri);                    //PRI_MAX
+				fixed_point_t p2 = fix_unscale(curenv->recent_cpu_time ,4);  //(𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4)
+				fixed_point_t PRIORITY = fix_sub(p1, p2);
+
+				fixed_point_t p3 = fix_int(curenv->nice_value * 2);          //(nice × 2)
+				PRIORITY = fix_sub(PRIORITY, p3);
+
+				int trunc_priority = fix_trunc(PRIORITY);
+
+				if(trunc_priority > max_pri) trunc_priority = max_pri;
+				else if(trunc_priority < PRI_MIN) trunc_priority = PRI_MIN;
+
+				///int old_priority = e->priority;
+				curenv->priority = trunc_priority;
 		}
 		//cprintf("---------------------------------------------------------------------\n\n");
 	}
