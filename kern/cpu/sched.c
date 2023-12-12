@@ -313,38 +313,22 @@ void clock_interrupt_handler()
 		if((timer_ticks()+1)%4 == 0)
 		{
 			uint8 envManga[5000] = { };
-
+			// update priority of all processes and change it's level
 			for(int i = 0; i < num_of_ready_queues ; i++)
 			{
 				struct Env *all_env;
-//				struct Env *all_env, *lastEnv = LIST_LAST(&env_ready_queues[i]);
 				LIST_FOREACH(all_env, &env_ready_queues[i])
 				{
 					if(envManga[all_env->env_id] == 0)
 					{
-						update_Priority(all_env);
+						update_Priority(all_env, 1);
 						envManga[all_env->env_id] = 1;
 					}
 					else break;
 				}
 			}
-			//priority = PRI_MAX - (𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4) - (nice × 2).
-				int max_pri = num_of_ready_queues - 1;
-
-				fixed_point_t p1 = fix_int(max_pri);                    //PRI_MAX
-				fixed_point_t p2 = fix_unscale(curenv->recent_cpu_time ,4);  //(𝑟𝑒𝑐𝑒𝑛𝑡_𝑐𝑝𝑢  / 4)
-				fixed_point_t PRIORITY = fix_sub(p1, p2);
-
-				fixed_point_t p3 = fix_int(curenv->nice_value * 2);          //(nice × 2)
-				PRIORITY = fix_sub(PRIORITY, p3);
-
-				int trunc_priority = fix_trunc(PRIORITY);
-
-				if(trunc_priority > max_pri) trunc_priority = max_pri;
-				else if(trunc_priority < PRI_MIN) trunc_priority = PRI_MIN;
-
-				///int old_priority = e->priority;
-				curenv->priority = trunc_priority;
+			// update priority of all processes without changing it's level
+			update_Priority(curenv, 0);
 		}
 		//cprintf("---------------------------------------------------------------------\n\n");
 	}

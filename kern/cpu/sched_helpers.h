@@ -12,7 +12,7 @@ LIST_HEAD(Env_Queue, Env);		// Declares 'struct Env_Queue'
 LIST_HEAD(Env_list, Env);		// Declares 'struct Env_list'
 
 /**************************************************/
-void update_Priority(struct Env* e);
+void update_Priority(struct Env* e, bool move)
 
 /*2023*/
 /********* for BSD Priority Scheduler *************/
