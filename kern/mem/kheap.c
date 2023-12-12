@@ -130,6 +130,7 @@ void* sbrk(int increment) {
 				panic("\nERROR_2 - cannot allocate frame, no memory\n");
 
 			ret = map_frame(ptr_page_directory, ptr_frame_info, i, PERM_WRITEABLE | PERM_PRESENT);
+			ptr_frame_info->va = i;
 			if (ret == E_NO_MEM) {
 				free_frame(ptr_frame_info);
 				panic("\nERROR_3 - cannot map to frame, no memory\n");

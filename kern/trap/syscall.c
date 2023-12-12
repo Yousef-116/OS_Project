@@ -481,7 +481,7 @@ void* sys_sbrk(int increment) {
 				create_page_table(curenv->env_page_directory, va);
 			}
 //			cprintf(">> mark va %x\n", va);
-			pt_set_page_permissions(curenv->env_page_directory, va, MARKED | PERM_WRITEABLE, 0x000);
+			pt_set_page_permissions(curenv->env_page_directory, va, MARKED , 0x000);
 		}
 
 		return (void *)old_brk;

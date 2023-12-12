@@ -153,7 +153,7 @@ void allocate_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 			create_page_table(e->env_page_directory, va);
 		}
 
-		pt_set_page_permissions(e->env_page_directory, va, MARKED | PERM_WRITEABLE, 0x000);
+		pt_set_page_permissions(e->env_page_directory, va, MARKED , 0x000);
 	}
 }
 
@@ -181,13 +181,12 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 	{
 		//cprintf(">> va = %x\n", va);
 		pt_set_page_permissions(e->env_page_directory, va, 0x000, MARKED);
-		pf_remove_env_page(e, va);
 		uint32 perm = pt_get_page_permissions(e->env_page_directory, va);
 		if(perm & PERM_PRESENT)
 		{
-			unmap_frame(e->env_page_directory , va);
 			env_page_ws_invalidate(e, va);
-
+			pf_remove_env_page(e, va);
+			unmap_frame(e->env_page_directory , va);
 
 			//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
 			//BONUS#2 - DONE

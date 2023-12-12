@@ -93,16 +93,18 @@ bool alloc_and_read_from_file(uint32 fault_va)
 	// allocate and map fault_va
 	struct FrameInfo * targetPageFrame;
 	allocate_frame(&targetPageFrame);
-	map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_WRITEABLE);
+	map_frame(curenv->env_page_directory, targetPageFrame, fault_va, PERM_USER | PERM_WRITEABLE | PERM_PRESENT);
+	targetPageFrame->va = fault_va;
 
 	// read from disk
 	int ret = pf_read_env_page(curenv, (void*)fault_va);
 	if(ret == E_PAGE_NOT_EXIST_IN_PF)
 	{
 //		cprintf(">> Not in disk...");
-		if(!(fault_va >= USTACKBOTTOM && fault_va < USTACKTOP) && !(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX))
+		if(!(fault_va >= USTACKBOTTOM && fault_va <= USTACKTOP) && !(fault_va >= USER_HEAP_START && fault_va <= USER_HEAP_MAX))
 		{
 //			cprintf(" not stack nor heap... so kill\n");
+			unmap_frame(curenv->env_page_directory , fault_va);
 			sched_kill_env(curenv->env_id);
 			return 0;
 		}
@@ -170,7 +172,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 
 			// disk managing
 			int perms = pt_get_page_permissions(curenv->env_page_directory, victim_va);
-			if(perms & PERM_MODIFIED || (victim_va >= USTACKBOTTOM && victim_va < USTACKTOP) || (victim_va >= USER_HEAP_START && victim_va < USER_HEAP_MAX))
+			if((perms & PERM_MODIFIED) || (victim_va >= USTACKBOTTOM && victim_va <= USTACKTOP) || (victim_va >= USER_HEAP_START && victim_va <= USER_HEAP_MAX))
 			{
 //				cprintf(">> victim page is modified or stack or heap... ");
 				uint32 *ptr_page_table;
@@ -226,6 +228,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 
 				WSElem = env_page_ws_list_create_element(curenv, fault_va);
 				LIST_INSERT_HEAD(&curenv->ActiveList, WSElem);
+				pt_set_page_permissions(curenv->env_page_directory, WSElem->virtual_address, PERM_PRESENT, 0x000);
 			}
 		}
 		else
@@ -246,7 +249,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			LIST_REMOVE(&curenv->SecondList, victim);
 
 			uint32 perm = pt_get_page_permissions(curenv->env_page_directory, victim_va);
-			if(perm & PERM_MODIFIED || (victim_va >= USTACKBOTTOM && victim_va < USTACKTOP) || (victim_va >= USER_HEAP_START && victim_va < USER_HEAP_MAX))
+			if((perm & PERM_MODIFIED) || (victim_va >= USTACKBOTTOM && victim_va <= USTACKTOP) || (victim_va >= USER_HEAP_START && victim_va <= USER_HEAP_MAX))
 			{
 //				cprintf(">> victim page is modified or stack or heap... ");
 				uint32 *ptr_page_table;
