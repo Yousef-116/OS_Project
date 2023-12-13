@@ -261,6 +261,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		}
 
 		//TODO: [PROJECT'23.MS3 - BONUS] [1] PAGE FAULT HANDLER - O(1) implementation of LRU replacement
+		// it's this function :) ==> get_WSE_from_Secondlist(curenv, fault_va);
 	}
 
 	// print WS list
