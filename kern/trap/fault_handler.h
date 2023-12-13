@@ -74,11 +74,4 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va);
 void table_fault_handler(struct Env * curenv, uint32 fault_va);
 
 
-//===============================
-// OUR-DEFINED FUNCTIONS
-//===============================
-int __getIndex(uint32 virtual_address);
-void set_wse_of_va(uint32 virtual_address, struct WorkingSetElement* wse);
-struct WorkingSetElement* get_wse_of_va(uint32 virtual_address);
-
 #endif /* KERN_FAULT_HANDLER_H_ */

@@ -175,6 +175,7 @@ void* malloc(uint32 size)
 //=================================
 void free(void* virtual_address)
 {
+	virtual_address = ROUNDDOWN(virtual_address, PAGE_SIZE);
 //	cprintf(">> free called\n");
 	//TODO: [PROJECT'23.MS2 - #11] [2] USER HEAP - free() [User Side]
 	// Write your code here, remove the panic and write your code

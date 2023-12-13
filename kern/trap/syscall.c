@@ -504,10 +504,10 @@ void* sys_sbrk(int increment) {
 			if (ptr_frame_info == 0)
 				return (void *)-1;
 			pf_remove_env_page(curenv, temp_brk); //remove from page file (disk)
-			unmap_frame(curenv->env_page_directory, temp_brk);
 
 			// WS managing
 			env_page_ws_invalidate(curenv, temp_brk);
+			unmap_frame(curenv->env_page_directory, temp_brk);
 			zbt_el_zabt(curenv);
 
 			temp_brk += PAGE_SIZE;
