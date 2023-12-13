@@ -88,7 +88,7 @@ bool alloc_and_read_from_file(uint32 fault_va)
 //		cprintf(">> Not in disk...");
 		if(!(fault_va >= USTACKBOTTOM && fault_va < USTACKTOP) && !(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX))
 		{
-//			cprintf(" not stack nor heap... so kill\n");
+			cprintf(" not stack nor heap... so kill\n");
 			unmap_frame(curenv->env_page_directory , fault_va);
 			sched_kill_env(curenv->env_id);
 			return 0;
@@ -239,7 +239,7 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			LIST_REMOVE(&curenv->SecondList, victim);
 
 			uint32 perm = pt_get_page_permissions(curenv->env_page_directory, victim_va);
-			if((perm & PERM_MODIFIED) || (victim_va >= USTACKBOTTOM && victim_va <= USTACKTOP) || (victim_va >= USER_HEAP_START && victim_va <= USER_HEAP_MAX))
+			if((perm & PERM_MODIFIED) || (victim_va >= USTACKBOTTOM && victim_va < USTACKTOP) || (victim_va >= USER_HEAP_START && victim_va <= USER_HEAP_MAX))
 			{
 //				cprintf(">> victim page is modified or stack or heap... ");
 				uint32 *ptr_page_table;

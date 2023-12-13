@@ -293,7 +293,7 @@ void kfree(void* virtual_address) {
 	uint32 *ptr_page_table = NULL;
 	struct FrameInfo *ptr_frame_info = virtual_address;
 
-	if ((uint32) virtual_address >= start && (uint32) virtual_address <= brk) // block area
+	if ((uint32) virtual_address >= start && (uint32) virtual_address < brk) // block area
 	{
 		//cprintf(">> in kfree block allocator, va = %x\n", virtual_address);
 		return free_block(virtual_address);
