@@ -551,6 +551,8 @@ int env_get_nice(struct Env* e)
 		//return 0;
 
 	return e->nice_value;
+
+
 }
 
 void update_Priority(struct Env* e, bool move)
@@ -575,7 +577,7 @@ void update_Priority(struct Env* e, bool move)
 	//cprintf(">> update priority of env [%d]... old = %d, new = %d... so we ", e->env_id, old_priority, trunc_priority);
 
 
-	if(move == 1 && LIST_SIZE(&env_ready_queues[old_priority]) > 0 && old_priority != trunc_priority)
+	if(move == 1  && LIST_SIZE(&env_ready_queues[old_priority]) > 0  && old_priority != trunc_priority)
 	{
 		//cprintf("change it's level\n");
 		LIST_REMOVE(&env_ready_queues[old_priority], e);
@@ -594,7 +596,10 @@ void env_set_nice(struct Env* e, int nice_value)
 	cprintf(">> set nice value\n");
 	e->nice_value = nice_value;
 	// update priority of the process without changing it's level
-	update_Priority(e, 0);
+	if(e->env_status != ENV_NEW)
+	{
+		update_Priority(e, 0);
+	}
 
 }
 int env_get_recent_cpu(struct Env* e)

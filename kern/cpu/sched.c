@@ -221,13 +221,14 @@ struct Env* fos_scheduler_BSD()
 	{
 		if (!LIST_EMPTY(&env_ready_queues[i]))
 		{
+			//kclock_set_quantum(quantums[0]);
 			struct Env* next_run = LIST_FIRST(&env_ready_queues[i]);
 			//cprintf(">> next process [%d] with priority = %d\n", next_run->env_id, i);
 			LIST_REMOVE(&env_ready_queues[i], next_run);
 			return next_run;
 		}
 	}
-
+	load_avg = fix_int(0);
 	return NULL;
 }
 
@@ -246,10 +247,24 @@ void clock_interrupt_handler()
 		uint32 seconds = ROUNDDOWN(timer_ticks()*(*quantums), 1000)/1000;
 		//cprintf("Seconds = %d,  quantum = %d,  timer_ticks() = %d,  seconds = %d\n",Seconds, *quantums, timer_ticks(), seconds);
 		int num_of_ready_processes = 0;
-		for(int i = 0; i < num_of_ready_queues ; i++)
+
+		/*for(int i = 0; i < num_of_ready_queues ; i++)
 		{
 			num_of_ready_processes += queue_size(&env_ready_queues[i]);
+		}*/
+
+		for(int i = 0; i < num_of_ready_queues ; i++)
+		{
+			struct Env *all_env;
+			LIST_FOREACH(all_env, &env_ready_queues[i])
+				{
+					if(all_env != NULL)
+						{
+							num_of_ready_processes+=1;
+						}
+				}
 		}
+
 //		num_of_ready_processes--;
 		//cprintf("num_of_ready_processes = %d\n", num_of_ready_processes);
 
