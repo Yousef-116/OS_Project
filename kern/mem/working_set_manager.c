@@ -222,6 +222,8 @@ void zbt_el_zabt(struct Env* e)
 			// make the page_last_WS_element the first element in the list
 			LIST_FIRST(&(e->page_WS_list)) = e->page_last_WS_element;
 			LIST_PREV(e->page_last_WS_element) = NULL;
+
+			e->page_last_WS_element = NULL;
 		}
 	}
 }

@@ -575,7 +575,7 @@ void update_Priority(struct Env* e, bool move)
 	//cprintf(">> update priority of env [%d]... old = %d, new = %d... so we ", e->env_id, old_priority, trunc_priority);
 
 
-	if(move == 1 && old_priority != trunc_priority)
+	if(move == 1 && LIST_SIZE(&env_ready_queues[old_priority]) > 0 && old_priority != trunc_priority)
 	{
 		//cprintf("change it's level\n");
 		LIST_REMOVE(&env_ready_queues[old_priority], e);
