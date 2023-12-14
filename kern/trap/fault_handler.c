@@ -122,68 +122,64 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 //	cprintf(">> fault_va = %x\n", fault_va);
 
 	if(isPageReplacmentAlgorithmFIFO())
+	{
+		//FIFO Placement
+		if(alloc_and_read_from_file(fault_va) == 0)
+			return;
+
+		if(wsSize < (curenv->page_WS_max_size))
 		{
-			//cprintf("REPLACEMENT=========================WS Size = %d\n", wsSize );
-			//[DONE in MS2]: [PROJECT'23.MS2] PAGE FAULT HANDLER – Placement
-			struct FrameInfo* newFrame ;
-			int ret = allocate_frame(&newFrame) ;
-			map_frame(curenv->env_page_directory, newFrame, fault_va, PERM_WRITEABLE| PERM_USER | PERM_PRESENT) ;
-			int read = pf_read_env_page((struct Env*)curenv, (void*)fault_va) ;
-			if(read == E_PAGE_NOT_EXIST_IN_PF)
+			struct WorkingSetElement* WSElem = env_page_ws_list_create_element(curenv, fault_va);
+			LIST_INSERT_TAIL(&(curenv->page_WS_list), WSElem);
+
+			// update page_last_WS_element for FIFO and clock algorithm
+			if(LIST_SIZE(&(curenv->page_WS_list)) == curenv->page_WS_max_size)
 			{
-				if(!(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX) && !(fault_va < USTACKTOP && fault_va >= USTACKBOTTOM))
-				{
-					cprintf("FIFO Kill\n");
-					sched_kill_env(curenv->env_id) ;
-				}
-			}
-			if(wsSize < (curenv->page_WS_max_size))
-			{
-				struct WorkingSetElement *newElement = env_page_ws_list_create_element(curenv,fault_va);
-				LIST_INSERT_TAIL(&curenv->page_WS_list, newElement);
-				wsSize += 1;
-				if(wsSize == curenv->page_WS_max_size)
-				{
-					curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
-				}
-			}
-			else
-			{
-				//TODO: [PROJECT'23.MS3 - #1] [1] PAGE FAULT HANDLER - FIFO Replacement
-				int perms = pt_get_page_permissions(curenv->env_page_directory, curenv->page_last_WS_element->virtual_address);
-				if(perms& PERM_MODIFIED)
-				{
-					uint32* ptr ;
-					int ret = pf_update_env_page(curenv, curenv->page_last_WS_element->virtual_address, get_frame_info(curenv->env_page_directory, curenv->page_last_WS_element->virtual_address,&ptr ));
-				}
-				unmap_frame(curenv->env_page_directory, curenv->page_last_WS_element->virtual_address);
-				if(curenv->page_last_WS_element == LIST_FIRST(&(curenv->page_WS_list)))
-				{
-					LIST_REMOVE(&(curenv->page_WS_list), curenv->page_last_WS_element);  // <=
-					env_page_ws_invalidate(curenv, curenv->page_last_WS_element->virtual_address);
-					struct WorkingSetElement *newElement = env_page_ws_list_create_element(curenv,fault_va);
-					LIST_INSERT_HEAD(&(curenv->page_WS_list), newElement) ;
-					curenv->page_last_WS_element = newElement->prev_next_info.le_next;
-				}
-				else if(curenv->page_last_WS_element == LIST_LAST(&curenv->page_WS_list))
-				{
-					LIST_REMOVE(&(curenv->page_WS_list), curenv->page_last_WS_element);  // <=
-					env_page_ws_invalidate(curenv, curenv->page_last_WS_element->virtual_address);
-					struct WorkingSetElement *newElement = env_page_ws_list_create_element(curenv,fault_va);
-					LIST_INSERT_TAIL(&(curenv->page_WS_list), newElement) ;
-					curenv->page_last_WS_element = LIST_FIRST(&(curenv->page_WS_list)) ;
-				}
-				else
-				{
-					struct WorkingSetElement * temp = curenv->page_last_WS_element->prev_next_info.le_prev ;
-					LIST_REMOVE(&(curenv->page_WS_list), curenv->page_last_WS_element) ;  // <=
-					env_page_ws_invalidate(curenv, curenv->page_last_WS_element->virtual_address);
-					struct WorkingSetElement *newElement = env_page_ws_list_create_element(curenv,fault_va);
-					LIST_INSERT_AFTER(&(curenv->page_WS_list), temp, newElement);
-					curenv->page_last_WS_element = newElement->prev_next_info.le_next ;
-				}
+				curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
 			}
 		}
+		//FIFO Replacement
+		else
+		{
+			//cprintf("REPLACEMENT=========================WS Size = %d\n", wsSize );
+			//refer to the project presentation and documentation for details
+			//TODO: [PROJECT'23.MS3 - #1] [1] PAGE FAULT HANDLER - FIFO Replacement
+			// Write your code here, remove the panic and write your code
+			//panic("page_fault_handler() FIFO Replacement is not implemented yet...!!");
+
+			uint32 victim_va = curenv->page_last_WS_element->virtual_address;
+
+#if USE_VA_WS_ARRAY
+			//update va_to_wse arr
+			set_wse_of_va(fault_va,  curenv->page_last_WS_element);
+			set_wse_of_va(victim_va,  NULL);
+#endif
+
+			// update virtual_address of the WS
+			curenv->page_last_WS_element->virtual_address = fault_va;
+
+			// disk managing
+			int perms = pt_get_page_permissions(curenv->env_page_directory, victim_va);
+			if((perms & PERM_MODIFIED) || (victim_va >= USTACKBOTTOM && victim_va < USTACKTOP) || (victim_va >= USER_HEAP_START && victim_va <= USER_HEAP_MAX))
+			{
+//				cprintf(">> victim page is modified or stack or heap... ");
+				uint32 *ptr_page_table;
+				struct FrameInfo * modified_page_frame_info = get_frame_info(curenv->env_page_directory, victim_va, &ptr_page_table);
+				pf_update_env_page(curenv, victim_va, modified_page_frame_info);
+//				cprintf("updated in disk\n");
+			}
+//			else cprintf("victim page is not modified and not stack nor heap\n");
+
+			// unmap the victim va
+			unmap_frame(curenv->env_page_directory, victim_va);
+
+			// update page_last_WS_element for FIFO and clock algorithm
+			if(curenv->page_last_WS_element == LIST_LAST(&curenv->page_WS_list))
+				curenv->page_last_WS_element = LIST_FIRST(&curenv->page_WS_list);
+			else
+				curenv->page_last_WS_element = LIST_NEXT(curenv->page_last_WS_element);
+		}
+	}
 	else if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
 		//TODO: [PROJECT'23.MS3 - #2] [1] PAGE FAULT HANDLER - LRU Replacement
