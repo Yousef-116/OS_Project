@@ -172,7 +172,7 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 
 	load_avg = fix_int(0);
 	quantums[0] = quantum;
-	kclock_set_quantum(quantum);
+	kclock_set_quantum(quantums[0]);
 	num_of_ready_queues = numOfLevels;
 
 	for(int i = 0 ; i < numOfLevels ; i++)
@@ -221,13 +221,14 @@ struct Env* fos_scheduler_BSD()
 	{
 		if (!LIST_EMPTY(&env_ready_queues[i]))
 		{
-			//kclock_set_quantum(quantums[0]);
+			kclock_set_quantum(quantums[0]);
 			struct Env* next_run = LIST_FIRST(&env_ready_queues[i]);
 			//cprintf(">> next process [%d] with priority = %d\n", next_run->env_id, i);
 			LIST_REMOVE(&env_ready_queues[i], next_run);
 			return next_run;
 		}
 	}
+	kclock_set_quantum(quantums[0]);
 	load_avg = fix_int(0);
 	return NULL;
 }
@@ -244,26 +245,9 @@ void clock_interrupt_handler()
 	{
 		//cprintf("\n=====================================================================\n");
 //		sched_print_all();
-		uint32 seconds = ROUNDDOWN(timer_ticks()*(*quantums), 1000)/1000;
-		//cprintf("Seconds = %d,  quantum = %d,  timer_ticks() = %d,  seconds = %d\n",Seconds, *quantums, timer_ticks(), seconds);
-		int num_of_ready_processes = 0;
-
-		/*for(int i = 0; i < num_of_ready_queues ; i++)
-		{
-			num_of_ready_processes += queue_size(&env_ready_queues[i]);
-		}*/
-
-		for(int i = 0; i < num_of_ready_queues ; i++)
-		{
-			struct Env *all_env;
-			LIST_FOREACH(all_env, &env_ready_queues[i])
-				{
-					if(all_env != NULL)
-						{
-							num_of_ready_processes+=1;
-						}
-				}
-		}
+//		uint32 seconds = ROUNDDOWN((timer_ticks()+1)*(*quantums), 1000)/1000;
+		uint32 seconds = ((timer_ticks()+1)*(*quantums))/1000;
+//		cprintf("Seconds = %d,  quantum = %d,  timer_ticks() = %lld,  seconds = %d\n",Seconds, *quantums, timer_ticks(), seconds);
 
 //		num_of_ready_processes--;
 		//cprintf("num_of_ready_processes = %d\n", num_of_ready_processes);
@@ -275,9 +259,18 @@ void clock_interrupt_handler()
 		if(seconds != Seconds)
 		{
 			Seconds = seconds;
-			//cprintf(">> one second passed curenv ID ( %d )\n" ,curenv->env_id);
+//			cprintf(">> one second passed curenv ID ( %d )\n" ,curenv->env_id);
 			//Load avg recalculated once per second
 			{
+				int num_of_ready_processes = 0;
+
+				for(int i = 0; i < num_of_ready_queues ; i++)
+				{
+					num_of_ready_processes += queue_size(&env_ready_queues[i]);
+				}
+
+				num_of_ready_processes++;
+//				cprintf("num_of_ready_processes = %d\n", num_of_ready_processes);
 				//𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  = (59/60) × 𝑙𝑜𝑎𝑑_𝑎𝑣𝑔  + (1/60) × 𝑟𝑒𝑎𝑑𝑦_𝑝𝑟𝑜𝑐𝑒𝑠𝑠𝑒𝑠.
 				fixed_point_t L1 = fix_int(59);
 				L1 = fix_unscale(L1, 60);
@@ -336,6 +329,7 @@ void clock_interrupt_handler()
 				{
 					if(envManga[all_env->env_id] == 0)
 					{
+						cprintf("level = %d, env_priority = %d\n", i, all_env->priority);
 						update_Priority(all_env, 1);
 						envManga[all_env->env_id] = 1;
 					}

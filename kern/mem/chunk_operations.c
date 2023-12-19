@@ -186,12 +186,15 @@ void free_user_mem(struct Env* e, uint32 virtual_address, uint32 size)
 		{
 			pf_remove_env_page(e, va);
 			env_page_ws_invalidate(e, va);
+#if USE_INV_O1 == 0
 			unmap_frame(e->env_page_directory , va);
+#endif
 
 			//TODO: [PROJECT'23.MS2 - BONUS#2] [2] USER HEAP - free_user_mem() IN O(1): removing page from WS List instead of searching the entire list
 			//BONUS#2 - DONE
 			//remove_ws_element_O1(e, virtual_address);
 		}
+
 	}
 	zbt_el_zabt(e);
 	//cprintf("size WS after = %d , free frame list after  = %d \n",e->page_WS_list.size , LIST_SIZE(&free_frame_list));

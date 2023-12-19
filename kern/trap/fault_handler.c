@@ -149,10 +149,14 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 
 			uint32 victim_va = curenv->page_last_WS_element->virtual_address;
 
-#if USE_VA_WS_ARRAY
-			//update va_to_wse arr
-			set_wse_of_va(fault_va,  curenv->page_last_WS_element);
-			set_wse_of_va(victim_va,  NULL);
+#if USE_INV_O1
+			uint32 *ptr_page_table = NULL;
+			struct FrameInfo * fault_va_frame = get_frame_info(curenv->env_page_directory, fault_va, &ptr_page_table);
+			fault_va_frame->element = curenv->page_last_WS_element;
+
+			ptr_page_table =  NULL;
+			struct FrameInfo * victim_va_frame = get_frame_info(curenv->env_page_directory, victim_va, &ptr_page_table);
+			victim_va_frame->element = NULL;
 #endif
 
 			// update virtual_address of the WS
@@ -186,7 +190,14 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		// Write your code here, remove the panic and write your code
 		//panic("page_fault_handler() LRU Replacement is not implemented yet...!!");
 
-		struct WorkingSetElement* WSElem = get_WSE_from_Secondlist(curenv, fault_va);
+		//search in the second list O(1)
+		uint32 *ptr_page_table = NULL;
+		struct FrameInfo * fault_va_frame = get_frame_info(curenv->env_page_directory, fault_va, &ptr_page_table);
+		struct WorkingSetElement* WSElem = NULL;
+		if(fault_va_frame != 0){
+			WSElem= fault_va_frame->element;
+		}
+
 		if(WSElem != NULL || LIST_SIZE(&curenv->ActiveList) + LIST_SIZE(&curenv->SecondList) < (curenv->page_WS_max_size))
 		{
 			// LRU placement
@@ -230,10 +241,15 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			struct WorkingSetElement* victim = LIST_LAST(&curenv->SecondList);
 			uint32 victim_va = victim->virtual_address;
 
-#if USE_VA_WS_ARRAY
-			//update va_to_wse arr
-			set_wse_of_va(fault_va, victim);
-			set_wse_of_va(victim_va,  NULL);
+#if USE_INV_O1
+			if(fault_va_frame == 0){
+				fault_va_frame = get_frame_info(curenv->env_page_directory, fault_va, &ptr_page_table);
+			}
+			fault_va_frame->element = victim;
+
+			ptr_page_table =  NULL;
+			struct FrameInfo * victim_va_frame = get_frame_info(curenv->env_page_directory, victim_va, &ptr_page_table);
+			victim_va_frame->element = NULL;
 #endif
 
 			LIST_REMOVE(&curenv->SecondList, victim);
@@ -242,8 +258,8 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 			if((perm & PERM_MODIFIED) || (victim_va >= USTACKBOTTOM && victim_va < USTACKTOP) || (victim_va >= USER_HEAP_START && victim_va <= USER_HEAP_MAX))
 			{
 //				cprintf(">> victim page is modified or stack or heap... ");
-				uint32 *ptr_page_table;
-				struct FrameInfo * modified_page_frame_info = get_frame_info(curenv->env_page_directory, victim_va, &ptr_page_table);
+				uint32 *page_table;
+				struct FrameInfo * modified_page_frame_info = get_frame_info(curenv->env_page_directory, victim_va, &page_table);
 				pf_update_env_page(curenv, victim_va, modified_page_frame_info);
 //				cprintf("updated in disk\n");
 			}
@@ -261,7 +277,6 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		}
 
 		//TODO: [PROJECT'23.MS3 - BONUS] [1] PAGE FAULT HANDLER - O(1) implementation of LRU replacement
-		// it's this function :) ==> get_WSE_from_Secondlist(curenv, fault_va);
 	}
 
 	// print WS list

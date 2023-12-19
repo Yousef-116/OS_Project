@@ -7,7 +7,7 @@
 
 #ifndef KERN_MEM_WORKING_SET_MANAGER_H_
 #define KERN_MEM_WORKING_SET_MANAGER_H_
-#define USE_VA_WS_ARRAY 0
+#define USE_INV_O1 1
 
 #include <inc/environment_definitions.h>
 
@@ -15,15 +15,6 @@
 void env_page_ws_print(struct Env *curenv);
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address);
 
-//===============================
-// OUR-DEFINED FUNCTIONS
-//===============================
-
-#if USE_VA_WS_ARRAY
-	int __getIndex(uint32 virtual_address);
-	void set_wse_of_va(uint32 virtual_address, struct WorkingSetElement* wse);
-	struct WorkingSetElement* get_wse_of_va(uint32 virtual_address);
-#endif
 
 struct WorkingSetElement *get_WSE_from_Secondlist(struct Env* e, uint32 virtual_address);
 void zbt_el_zabt(struct Env* e);

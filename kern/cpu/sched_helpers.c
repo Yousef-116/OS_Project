@@ -577,7 +577,7 @@ void update_Priority(struct Env* e, bool move)
 	//cprintf(">> update priority of env [%d]... old = %d, new = %d... so we ", e->env_id, old_priority, trunc_priority);
 
 
-	if(move == 1  && LIST_SIZE(&env_ready_queues[old_priority]) > 0  && old_priority != trunc_priority)
+	if(move == 1 && old_priority != trunc_priority)
 	{
 		//cprintf("change it's level\n");
 		LIST_REMOVE(&env_ready_queues[old_priority], e);
@@ -592,6 +592,9 @@ void env_set_nice(struct Env* e, int nice_value)
 	//Your code is here
 	//Comment the following line
 	//panic("Not implemented yet");
+
+	if(nice_value < -20) nice_value = -20;
+	else if(nice_value > 20) nice_value = 20;
 
 	cprintf(">> set nice value\n");
 	e->nice_value = nice_value;

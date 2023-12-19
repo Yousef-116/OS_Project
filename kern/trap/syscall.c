@@ -507,7 +507,9 @@ void* sys_sbrk(int increment) {
 
 			// WS managing
 			env_page_ws_invalidate(curenv, temp_brk);
+#if USE_INV_O1 == 0
 			unmap_frame(curenv->env_page_directory, temp_brk);
+#endif
 			zbt_el_zabt(curenv);
 
 			temp_brk += PAGE_SIZE;

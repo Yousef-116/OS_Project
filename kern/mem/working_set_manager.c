@@ -14,173 +14,112 @@
 /// Dealing with environment working set
 #if USE_KHEAP
 
+#if USE_INV_O1
+inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
+{
+	uint32 *ptr_page_table = NULL;
+	struct FrameInfo * frame = get_frame_info(e->env_page_directory, virtual_address, &ptr_page_table);
+	struct WorkingSetElement *wse = frame->element;
+	if(wse == NULL){
+//		panic("Trying to invalidate a null WS\n");
+		return;
+	}
 
-#if USE_VA_WS_ARRAY
 
-	struct WorkingSetElement* va_to_WSE[(USER_LIMIT - USER_HEAP_START) / PAGE_SIZE]; // array holds the ws_element of each USER HEAP or USER STACK va
-
-	int __getIndex(uint32 virtual_address)
+	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
-		int index = (ROUNDDOWN(virtual_address, PAGE_SIZE) - USER_HEAP_START)/PAGE_SIZE;
-		return index;
-	}
-
-	void set_wse_of_va(uint32 virtual_address, struct WorkingSetElement* wse){
-		va_to_WSE[__getIndex(virtual_address)] = wse;
-	}
-
-	struct WorkingSetElement* get_wse_of_va(uint32 virtual_address){
-		return va_to_WSE[__getIndex(virtual_address)];
-	}
-
-	struct WorkingSetElement *get_WSE_from_Secondlist(struct Env* e, uint32 virtual_address)
-	{
-		struct WorkingSetElement *wse = get_wse_of_va(virtual_address);
-		if(wse != NULL){
-			uint32 perm = pt_get_page_permissions(e->env_page_directory, wse->virtual_address);
-			if(!(perm & PERM_PRESENT)){ // In SecondList
-				return wse;
-			}
+		uint32 perm = pt_get_page_permissions(e->env_page_directory, virtual_address);
+		if(perm & PERM_PRESENT){
+			LIST_REMOVE(&(e->ActiveList), wse);
 		}
-		return NULL;
+		else{
+			LIST_REMOVE(&(e->SecondList), wse);
+		}
 	}
-
-	void shift_Second_list(struct Env* e)
+	else
 	{
-		// remove the first WSE from Second list and insert it to the tail of Active list
-		struct WorkingSetElement* ptr_tmp_WS_element = LIST_FIRST(&(e->SecondList));
-		LIST_REMOVE(&(e->SecondList), ptr_tmp_WS_element);
-		LIST_INSERT_TAIL(&(e->ActiveList), ptr_tmp_WS_element);
-		pt_set_page_permissions(e->env_page_directory, ptr_tmp_WS_element->virtual_address, PERM_PRESENT, 0);
-	}
-
-	// bta3tna
-	inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
-	{
-		struct WorkingSetElement *wse = get_wse_of_va(virtual_address);
-		if(wse == NULL)
-			return;
-
-		if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
+		if (e->page_last_WS_element == wse)
 		{
-			uint32 perm = pt_get_page_permissions(e->env_page_directory, wse->virtual_address);
-			if(perm & PERM_PRESENT) // In ActiveList
-			{
-				LIST_REMOVE(&(e->ActiveList), wse);
-				if(LIST_SIZE(&(e->SecondList)) != 0){ // SecondList NOT empty
-					shift_Second_list(e);
-				}
-			}
-			else{ // In SecondList
-				LIST_REMOVE(&(e->SecondList), wse);
-			}
-
-			unmap_frame(e->env_page_directory, wse->virtual_address);
-			/*EDIT*/ kfree(wse);
-
-			//update va_to_wse arr
-			set_wse_of_va(virtual_address, NULL);
+			e->page_last_WS_element = LIST_NEXT(wse);
 		}
-		else
-		{
-			if (e->page_last_WS_element == wse)
-			{
-				e->page_last_WS_element = LIST_NEXT(wse);
-			}
-			LIST_REMOVE(&(e->page_WS_list), wse);
-			kfree(wse);
-
-			//update va_to_wse arr
-			set_wse_of_va(virtual_address, NULL);
-		}
-
+		LIST_REMOVE(&(e->page_WS_list), wse);
 	}
+
+	frame->element = NULL;
+	unmap_frame(e->env_page_directory, virtual_address);
+	kfree(wse);
+}
 
 #else
 
-	struct WorkingSetElement *get_WSE_from_Secondlist(struct Env* e, uint32 virtual_address)
+inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
+{
+	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 	{
+		bool found = 0;
 		struct WorkingSetElement *ptr_WS_element = NULL;
-		LIST_FOREACH(ptr_WS_element, (&e->SecondList))
+		LIST_FOREACH(ptr_WS_element, &(e->ActiveList))
 		{
 			if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
 			{
-				return ptr_WS_element;
+				struct WorkingSetElement* ptr_tmp_WS_element = LIST_FIRST(&(e->SecondList));
+				unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
+				LIST_REMOVE(&(e->ActiveList), ptr_WS_element);
+
+				//EDIT
+				kfree(ptr_WS_element);
+
+				if(ptr_tmp_WS_element != NULL)
+				{
+					LIST_REMOVE(&(e->SecondList), ptr_tmp_WS_element);
+					LIST_INSERT_TAIL(&(e->ActiveList), ptr_tmp_WS_element);
+					pt_set_page_permissions(e->env_page_directory, ptr_tmp_WS_element->virtual_address, PERM_PRESENT, 0);
+				}
+				found = 1;
+				break;
 			}
 		}
-		return NULL;
-	}
 
-	// bta3t el doctor
-	inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
-	{
-		if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
+		if (!found)
 		{
-			bool found = 0;
-			struct WorkingSetElement *ptr_WS_element = NULL;
-			LIST_FOREACH(ptr_WS_element, &(e->ActiveList))
+			ptr_WS_element = NULL;
+			LIST_FOREACH(ptr_WS_element, &(e->SecondList))
 			{
 				if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
 				{
-					struct WorkingSetElement* ptr_tmp_WS_element = LIST_FIRST(&(e->SecondList));
 					unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
-					LIST_REMOVE(&(e->ActiveList), ptr_WS_element);
+					LIST_REMOVE(&(e->SecondList), ptr_WS_element);
 
-					//EDIT
 					kfree(ptr_WS_element);
 
-					if(ptr_tmp_WS_element != NULL)
-					{
-						LIST_REMOVE(&(e->SecondList), ptr_tmp_WS_element);
-						LIST_INSERT_TAIL(&(e->ActiveList), ptr_tmp_WS_element);
-						pt_set_page_permissions(e->env_page_directory, ptr_tmp_WS_element->virtual_address, PERM_PRESENT, 0);
-					}
-					found = 1;
-					break;
-				}
-			}
-
-			if (!found)
-			{
-				ptr_WS_element = NULL;
-				LIST_FOREACH(ptr_WS_element, &(e->SecondList))
-				{
-					if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
-					{
-						unmap_frame(e->env_page_directory, ptr_WS_element->virtual_address);
-						LIST_REMOVE(&(e->SecondList), ptr_WS_element);
-
-						kfree(ptr_WS_element);
-
-						//EDIT
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			struct WorkingSetElement *wse;
-			LIST_FOREACH(wse, &(e->page_WS_list))
-			{
-				if(ROUNDDOWN(wse->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
-				{
-					if (e->page_last_WS_element == wse)
-					{
-						e->page_last_WS_element = LIST_NEXT(wse);
-					}
-					LIST_REMOVE(&(e->page_WS_list), wse);
-
-					kfree(wse);
-
+					//EDIT
 					break;
 				}
 			}
 		}
 	}
+	else
+	{
+		struct WorkingSetElement *wse;
+		LIST_FOREACH(wse, &(e->page_WS_list))
+		{
+			if(ROUNDDOWN(wse->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
+			{
+				if (e->page_last_WS_element == wse)
+				{
+					e->page_last_WS_element = LIST_NEXT(wse);
+				}
+				LIST_REMOVE(&(e->page_WS_list), wse);
+
+				kfree(wse);
+
+				break;
+			}
+		}
+	}
+}
 
 #endif
-
 
 inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, uint32 virtual_address)
 {
@@ -196,8 +135,11 @@ inline struct WorkingSetElement* env_page_ws_list_create_element(struct Env* e, 
 	new_element->prev_next_info.le_prev = NULL;
 	new_element->prev_next_info.le_next = NULL;
 
-#if USE_VA_WS_ARRAY
-	set_wse_of_va(virtual_address, new_element);
+#if USE_INV_O1
+//	set_wse_of_va(virtual_address, new_element);
+	uint32 *ptr_page_table = NULL;
+	struct FrameInfo * frame = get_frame_info(e->env_page_directory, virtual_address, &ptr_page_table);
+	frame->element = new_element;
 #endif
 
 	return new_element;
@@ -227,6 +169,8 @@ void zbt_el_zabt(struct Env* e)
 		}
 	}
 }
+
+
 
 void env_page_ws_print(struct Env *e)
 {
