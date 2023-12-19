@@ -108,7 +108,7 @@ void* sbrk(int increment) {
 		}
 
 		if (new_brk > hLimit ){
-			panic("\nERROR_1 - brk + increment >= hLimit\n");
+			panic("\nERROR_1 - brk + increment > hLimit\n");
 		}
 		else {
 			brk = new_brk;
@@ -148,8 +148,8 @@ void* sbrk(int increment) {
 
 		//increment = ROUNDDOWN(increment, PAGE_SIZE);
 
-		if (brk + increment <= start)
-			panic("\nERROR_5 - brk + increment <= start\n");
+		if (brk + increment < start)
+			panic("\nERROR_5 - brk + increment < start\n");
 
 		new_brk += increment;
 
@@ -175,6 +175,8 @@ void* sbrk(int increment) {
 		}
 
 		meta_data->size = new_brk - (uint32) meta_data; // last metaData under new brk - size equals space in between
+
+		brk = new_brk;
 
 		return (void *) new_brk;
 
