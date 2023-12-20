@@ -449,12 +449,43 @@ void env_free(struct Env *e)
 	//TODO: [PROJECT'23.MS3 - BONUS] EXIT ENV: env_free
 	// your code is here, remove the panic and write your code
 	{
-		panic("env_free() is not implemented yet...!!");
+		//panic("env_free() is not implemented yet...!!");
 
+		// free pages from ActiveList FCFS
+		struct WorkingSetElement* active_list_element = LIST_FIRST(&(e->ActiveList));
+		LIST_FOREACH(active_list_element, &(e->ActiveList))
+		{
+			env_page_ws_invalidate(e, active_list_element->virtual_address); // free page at given va
+		}
 
+		// free pages from SecondList LRU
+		struct WorkingSetElement* second_list_element = LIST_FIRST(&(e->SecondList));
+		LIST_FOREACH(second_list_element, &(e->SecondList))
+		{
+			env_page_ws_invalidate(e, second_list_element->virtual_address);
+		}
 
+		// free pages from page_ws_list FIFO -- not sure about it
+		struct WorkingSetElement* ws_list_element = LIST_FIRST(&(e->page_WS_list));
+		LIST_FOREACH(ws_list_element, &(e->page_WS_list))
+		{
+			env_page_ws_invalidate(e, ws_list_element->virtual_address);
+		}
 
+		// clearing all page tables in user virtual memory
+		for (uint32 va = e->dynamic_allocate_USER_heap_start; va < e->dynamic_allocate_USER_heap_break; va++)
+		{
+			if (pd_is_table_used((uint32*) e, va)) // check if current table is/was used by processor
+			{
+				pd_clear_page_dir_entry((uint32*)e, va); // set entry to NULL
+				pd_set_table_unused((uint32*) e, va); // mark as unused
+				kfree((void *)va); // free from memory -- expected size to free = PAGE_SIZE = 4KB
+			}
+		}
 
+		// clearing page directory
+		kfree(e->env_page_directory); // free from memory -- expected size to free = PAGE_SIZE = 4KB
+		e->env_page_directory = 0; // set va = NULL
 
 	}
 
