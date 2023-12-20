@@ -149,10 +149,37 @@ int allocate_frame(struct FrameInfo **ptr_frame_info)
 	if (*ptr_frame_info == NULL)
 	{
 		//TODO: [PROJECT'23.MS3 - BONUS] Free RAM when it's FULL
-		panic("ERROR: Kernel run out of memory... allocate_frame cannot find a free frame.\n");
+		//panic("ERROR: Kernel run out of memory... allocate_frame cannot find a free frame.\n");
 		// When allocating new frame, if there's no free frame, then you should:
+
 		//	1-	If any process has exited (those with status ENV_EXIT), then remove one or more of these exited processes from the main memory
-		//	2-	otherwise, free at least 1 frame from the user working set by applying the FIFO algorithm
+		while (queue_size(&env_exit_queue) > 0) // iterating until (1)finding free frame (2)queue has become empty
+		{
+			if (LIST_FIRST(&free_frame_list) == NULL) // still no free frame found? search in the queue again
+			{
+				struct Env* env_to_free = dequeue(&env_exit_queue); // find env_to_free from the queue of all exited envs
+				env_free(env_to_free);
+
+//				if (env_to_free->env_status == ENV_EXIT) // if env_to_free status = ENV_EXIT then remove it otherwise insert it again in the queue
+//					env_free(env_to_free);
+//				else
+//					enqueue(&env_exit_queue);
+
+			}
+			else // found free frame? break out of loop
+			{
+				*ptr_frame_info = LIST_FIRST(&free_frame_list);
+				break;
+			}
+		}
+
+		if (*ptr_frame_info == NULL)
+		{
+			//	2-	otherwise, free at least 1 frame from the user working set by applying the FIFO algorithm
+		}
+
+
+
 	}
 
 	LIST_REMOVE(&free_frame_list,*ptr_frame_info);
