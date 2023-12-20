@@ -442,8 +442,9 @@ void env_run(struct Env *e)
 //
 void env_free(struct Env *e)
 {
+	cprintf("in env_free \n");
 	/*REMOVE THIS LINE BEFORE START CODING*/
-	return;
+	//return;
 	/**************************************/
 
 	//TODO: [PROJECT'23.MS3 - BONUS] EXIT ENV: env_free
@@ -472,16 +473,28 @@ void env_free(struct Env *e)
 			env_page_ws_invalidate(e, ws_list_element->virtual_address);
 		}
 
-		// clearing all page tables in user virtual memory
-		for (uint32 va = e->dynamic_allocate_USER_heap_start; va < e->dynamic_allocate_USER_heap_break; va++)
-		{
-			if (pd_is_table_used((uint32*) e, va)) // check if current table is/was used by processor
-			{
-				pd_clear_page_dir_entry((uint32*)e, va); // set entry to NULL
-				pd_set_table_unused((uint32*) e, va); // mark as unused
-				kfree((void *)va); // free from memory -- expected size to free = PAGE_SIZE = 4KB
-			}
+
+		// loop over all entries in the page directory
+		for (int i = 0; i < NPDENTRIES; i++) {
+		    if (pd_is_table_used((uint32*) e, e->env_page_directory[i])) {
+		    	pd_clear_page_dir_entry((uint32*)e, e->env_page_directory[i]); // set entry to NULL
+		 		pd_set_table_unused((uint32*) e, e->env_page_directory[i]); // mark as unused
+		    	kfree((void *)e->env_page_directory[i]);
+		    }
 		}
+
+
+
+		// clearing all page tables in user virtual memory
+//		for (uint32 va = e->dynamic_allocate_USER_heap_start; va < e->dynamic_allocate_USER_heap_break; va++)
+//		{
+//			if (pd_is_table_used((uint32*) e, va)) // check if current table is/was used by processor
+//			{
+//				pd_clear_page_dir_entry((uint32*)e, va); // set entry to NULL
+//				pd_set_table_unused((uint32*) e, va); // mark as unused
+//				kfree((void *)va); // free from memory -- expected size to free = PAGE_SIZE = 4KB
+//			}
+//		}
 
 		// clearing page directory
 		kfree(e->env_page_directory); // free from memory -- expected size to free = PAGE_SIZE = 4KB

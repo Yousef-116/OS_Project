@@ -329,7 +329,7 @@ void clock_interrupt_handler()
 				{
 					if(envManga[all_env->env_id] == 0)
 					{
-						cprintf("level = %d, env_priority = %d\n", i, all_env->priority);
+						//cprintf("level = %d, env_priority = %d\n", i, all_env->priority);
 						update_Priority(all_env, 1);
 						envManga[all_env->env_id] = 1;
 					}
