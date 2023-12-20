@@ -64,27 +64,13 @@ DECLARE_START_OF(tst_malloc_1);
 DECLARE_START_OF(tst_malloc_2);
 DECLARE_START_OF(tst_first_fit_1);
 DECLARE_START_OF(tst_first_fit_2);
+DECLARE_START_OF(tu_sbrk);
+
 //2023
 DECLARE_START_OF(tst_syscalls_1);
 DECLARE_START_OF(tst_syscalls_2);
 DECLARE_START_OF(tst_syscalls_2_slave1);
 DECLARE_START_OF(tst_syscalls_2_slave2);
 DECLARE_START_OF(tst_syscalls_2_slave3);
-
-//MS3
-DECLARE_START_OF(tst_page_replacement_alloc)
-DECLARE_START_OF(tst_page_replacement_stack)
-DECLARE_START_OF(tst_page_replacement_FIFO_1);
-DECLARE_START_OF(tst_page_replacement_FIFO_2);
-DECLARE_START_OF(tst_placement_1);
-DECLARE_START_OF(tst_placement_2);
-DECLARE_START_OF(tst_placement_3);
-DECLARE_START_OF(tst_page_replacement_LRU_Lists_1);
-DECLARE_START_OF(tst_page_replacement_LRU_Lists_2);
-DECLARE_START_OF(tst_page_replacement_stack_LRU_Lists);
-DECLARE_START_OF(mergesort_leakage);
-DECLARE_START_OF(mergesort_noleakage);
-DECLARE_START_OF(quicksort_noleakage);
-
 
 #endif /* KERN_USER_PROGRAMS_H_ */

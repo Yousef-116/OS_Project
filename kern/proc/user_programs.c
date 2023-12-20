@@ -35,7 +35,8 @@ struct UserProgramInfo userPrograms[] = {
 		{ "tf1_slave1", "tests free (1) slave1: try accessing values in freed spaces", PTR_START_OF(tst_free_1_slave1)},
 		{ "tf1_slave2", "tests free (1) slave2: try accessing values in freed spaces that is not accessed before", PTR_START_OF(tst_free_1_slave2)},
 		{ "tf2", "tests free (2): BLOCK ALLOCATOR", PTR_START_OF(tst_free_2)},
-		
+		{ "tu_sbrk", "tests user sbrk", PTR_START_OF(tu_sbrk)},
+
 		{ "tff1", "tests first fit (1): PAGE ALLOCATOR", PTR_START_OF(tst_first_fit_1)},
 		{ "tff2", "tests first fit (2): BLOCK ALLOCATOR", PTR_START_OF(tst_first_fit_2)},
 		{ "tpp", "Tests the Page placement", PTR_START_OF(tst_placement)},
@@ -44,25 +45,9 @@ struct UserProgramInfo userPrograms[] = {
 		{ "tia_slave2", "tia: write on read only user page", PTR_START_OF(tst_invalid_access_slave2)},
 		{ "tia_slave3", "tia: access an unmarked (non-reserved) user heap page", PTR_START_OF(tst_invalid_access_slave3)},
 		{ "tia_slave4", "tia: access a non-exist page in page file, stack and heap", PTR_START_OF(tst_invalid_access_slave4)},
-		
-		{ "tpr1", "Tests page replacement (allocation of Memory and PageFile)", PTR_START_OF(tst_page_replacement_alloc)},
-		{ "tpr2", "tests page replacement (handling new stack and modified pages)", PTR_START_OF(tst_page_replacement_stack)},
-		{ "tfifo1", "Tests page replacement (FIFO algorithm 1)", PTR_START_OF(tst_page_replacement_FIFO_1)},
-		{ "tfifo2", "Tests page replacement (FIFO algorithm 2)", PTR_START_OF(tst_page_replacement_FIFO_2)},
-		{"tpplru1","LRU Approx: tests page placement in case the active list is not FULL",PTR_START_OF(tst_placement_1)},
-		{"tpplru2","LRU Approx: tests page placement in case the active list is FULL, and the second active list is NOT FULL",PTR_START_OF(tst_placement_2)},
-		{"tpplru3","LRU Approx: tests page faults on pages already exist in the second active list (ACCESS)",PTR_START_OF(tst_placement_3)},
-		{"tprlru1","LRU Approx: tests allocation in memory and page file after page replacement",PTR_START_OF(tst_page_replacement_LRU_Lists_1)},
-		{"tprlru2","LRU Approx: tests the LRU algorithm by emitting a page from the second chance for page replacement",PTR_START_OF(tst_page_replacement_LRU_Lists_2)},
-		{"tprlru3","LRU Approx: tests page replacement of stack (creating, modifying and reading them)",PTR_START_OF(tst_page_replacement_stack_LRU_Lists)},
-
-
 		//[2] PROGRAMS
 		{ "fact", "Factorial Recursive", PTR_START_OF(fos_factorial)},
 		{ "fib", "Fibonacci Recursive", PTR_START_OF(fos_fibonacci)},
-		{ "qs", "Quicksort with NO memory leakage", PTR_START_OF(quicksort_noleakage)},
-		{ "ms1", "Mergesort with NO memory leakage", PTR_START_OF(mergesort_noleakage)},
-		{ "ms2", "Mergesort that cause memory leakage", PTR_START_OF(mergesort_leakage)},
 
 		//[3] BONUSES
 

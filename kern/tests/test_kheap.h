@@ -30,6 +30,7 @@
  int test_kfreelast();
  int test_krealloc();
  int test_krealloc_BF();
+ int test_ksbrk();
 
  //2022
  int test_initialize_dyn_block_system(int freeFrames_before, int freeDiskFrames_before, int freeFrames_after, int freeDiskFrames_after);

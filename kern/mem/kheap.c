@@ -97,7 +97,7 @@ void* sbrk(int increment) {
 	//panic("not implemented yet");
 
 	uint32 old_brk = brk;
-	uint32 new_brk = old_brk;
+	uint32 new_brk = brk;
 	if (increment > 0)
 	{
 		new_brk += increment;
@@ -110,9 +110,9 @@ void* sbrk(int increment) {
 		if (new_brk > hLimit ){
 			panic("\nERROR_1 - brk + increment > hLimit\n");
 		}
-		else {
+		//else {
 			brk = new_brk;
-		}
+		//}
 
 
 		uint32 strt = old_brk;
@@ -121,20 +121,36 @@ void* sbrk(int increment) {
 		{
 			strt = ROUNDUP(diff, PAGE_SIZE) + start;
 		}
-		for (uint32 i = strt; i < brk; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
+		for (uint32 i = strt; i < new_brk; i += PAGE_SIZE) // allocate all frames between old_brk & new brk
 		{
+			uint32* ptr_page_table = NULL;
+			int ret = get_page_table(ptr_page_directory, i, &ptr_page_table);
+			if(ret == TABLE_NOT_EXIST){
+				//cprintf("create page table\n");
+				create_page_table(ptr_page_directory, i);
+			}
+
 			struct FrameInfo *ptr_frame_info = NULL;
 
-			int ret = allocate_frame(&ptr_frame_info);
+			ret = allocate_frame(&ptr_frame_info);
+//			if(ret == TABLE_NOT_EXIST){
+//				//cprintf("create page table\n");
+//				create_page_table(ptr_page_directory, i);
+//
+//			}
+
 			if (ret == E_NO_MEM)
 				panic("\nERROR_2 - cannot allocate frame, no memory\n");
 
+
 			ret = map_frame(ptr_page_directory, ptr_frame_info, i, PERM_WRITEABLE | PERM_PRESENT);
-			ptr_frame_info->va = i;
+
 			if (ret == E_NO_MEM) {
 				free_frame(ptr_frame_info);
 				panic("\nERROR_3 - cannot map to frame, no memory\n");
 			}
+
+			ptr_frame_info->va = i;
 
 			ptr_frame_info->va = i;
 		}

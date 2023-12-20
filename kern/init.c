@@ -21,6 +21,8 @@
 #include <kern/mem/shared_memory_manager.h>
 #include <kern/tests/utilities.h>
 #include <kern/tests/test_kheap.h>
+#include <kern/tests/test_dynamic_allocator.h>
+#include <kern/tests/test_commands.h>
 #include <kern/disk/pagefile_manager.h>
 
 extern int sys_calculate_free_frames();
@@ -129,11 +131,49 @@ void FOS_initialize()
 
 	//Project initializations
 
+
 	// start the kernel command prompt.
+	bool autograde = 1;
 	while (1==1)
 	{
 		cprintf("\nWelcome to the FOS kernel command prompt!\n");
 		cprintf("Type 'help' for a list of commands.\n");
+		if (autograde)
+		{
+			cprintf("\nMS2 Automatic testing is STARTED...\n") ;
+
+			//TEST#1: KERNEL HEAP
+			{
+				char cmd1[BUFLEN] = "tst kheap ff sbrk";
+				char cmd2[BUFLEN] = "tst kheap FF kmalloc 1";
+				char cmd3[BUFLEN] = "tst kheap FF kfree";
+				char cmd4[BUFLEN] = "tst kheap FF kmalloc 2";
+				char cmd5[BUFLEN] = "tst kheap FF kmalloc 3";
+				char cmd6[BUFLEN] = "tst kheap FF kvirtaddr";
+				char cmd7[BUFLEN] = "tst kheap FF kphysaddr";
+				execute_command(cmd1);
+			}
+			//TEST#2: FAULT HANDLER I
+			{
+				char cmd8[BUFLEN] = "run tia 15";
+				char cmd9[BUFLEN] = "run tpp 20";
+				//execute_command(cmd8);
+			}
+			//TEST#3: USER HEAP
+			{
+				char cmd10[BUFLEN] = "run tu_sbrk 3000";
+				char cmd11[BUFLEN] = "run tm1 3000";
+				char cmd12[BUFLEN] = "run tm2 3000";
+				char cmd13[BUFLEN] = "run tf1 3000";
+				char cmd14[BUFLEN] = "run tf2 3000";
+				char cmd15[BUFLEN] = "run tff1 3000";
+				char cmd16[BUFLEN] = "run tff2 10000";
+
+				//execute_command(cmd10);
+			}
+			cprintf("MS2 Automatic testing is ENDED\n") ;
+			autograde = 0;
+		}
 		run_command_prompt();
 	}
 }
@@ -170,7 +210,7 @@ void _panic(const char *file, int line, const char *fmt,...)
 	panicstr = fmt;
 
 	va_start(ap, fmt);
-	cprintf("\nkernel panic at %s:%d: ", file, line);
+	cprintf("\nkernel [EVAL_FINAL]panic at %s:%d: ", file, line);
 	vcprintf(fmt, ap);
 	cprintf("\n");
 	va_end(ap);

@@ -29,6 +29,7 @@ struct Test tests[] = {
 		{"priority2", "Tests the priority of the program (Normal and Lower)", tst_priority2},
 		{"mlfq_sc4","Scenario#4: MLFQ",tst_sc_MLFQ },
 		//2022
+		{"str2lower", "Test str2lower function", tst_str2lower},
 		{"autocomplete", "Test commands autcomplte", tst_autocomplete},
 		{"dynalloc","Test dynamic allocator", tst_dyn_alloc },
 		{"pg", "Test paging manipulation for a specific page", tst_paging_manipulation},
@@ -152,6 +153,18 @@ int tst_sc_MLFQ(int number_of_arguments, char **arguments)
 
 
 /*2022*/
+int tst_str2lower(int number_of_arguments, char **arguments)
+{
+	if (number_of_arguments != 1)
+	{
+		cprintf("Invalid number of arguments! USAGE: tst str2lower\n");
+		return 0;
+	}
+
+	//test_str2lower_function();
+	return 0;
+}
+
 int tst_autocomplete(int number_of_arguments, char **arguments)
 {
 	int x = TestAutoCompleteCommand();
@@ -203,8 +216,8 @@ int tst_dyn_alloc(int number_of_arguments, char **arguments)
 	// Test 8 Example for realloc_block_ff: tstdynalloc reallocFF
 	else if(strcmp(arguments[1], "reallocff") == 0)
 	{
-		test_realloc_block_FF();
 		//test_realloc_block_FF();
+		test_realloc_block_FF_COMPLETE();
 	}
 	return 0;
 }
@@ -402,6 +415,11 @@ int tst_kheap(int number_of_arguments, char **arguments)
 			test_krealloc_BF();
 		}
 		return 0;
+	}
+	// Test 6-sbr: tst kheap FF sbrk
+	else if (strcmp(arguments[2], "sbrk") == 0)
+	{
+		test_ksbrk();
 	}
 	return 0;
 }

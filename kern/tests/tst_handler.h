@@ -43,6 +43,7 @@ int tst_priority1(int number_of_arguments, char **arguments);
 int tst_priority2(int number_of_arguments, char **arguments);
 int tst_sc_MLFQ(int number_of_arguments, char **arguments);
 /*2022*/
+int tst_str2lower(int number_of_arguments, char **arguments);
 int tst_autocomplete(int number_of_arguments, char **arguments);
 int tst_dyn_alloc(int number_of_arguments, char **arguments);
 int tst_paging_manipulation(int number_of_arguments, char **arguments);
