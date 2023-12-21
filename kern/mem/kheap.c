@@ -167,6 +167,7 @@ void* sbrk(int increment) {
 			temp_brk += PAGE_SIZE;
 		}
 
+		/*
 		struct BlockMetaData *meta_data = LIST_LAST(&MemoryList);
 		while ((uint32) meta_data >= (uint32) new_brk) // remove any metaData above or equals new brk
 		{
@@ -175,9 +176,9 @@ void* sbrk(int increment) {
 		}
 
 		meta_data->size = new_brk - (uint32) meta_data; // last metaData under new brk - size equals space in between
+		*/
 
 		brk = new_brk;
-
 		return (void *) new_brk;
 
 	}
