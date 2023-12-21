@@ -11,41 +11,134 @@
 //==================================================================================//
 //============================== OUR DEFINED FUNCTIONS =============================//
 //==================================================================================//
+//struct MemBlock_LIST free_block_list;
+uint8 called_sbrk = 0;
+uint32 size_called_sbrk;
 
-//struct MemBlock_LIST MemoryList;
+void update_call_sbrk(uint32 size)
+{
+	if(size >= size_called_sbrk)
+		called_sbrk = 0;
+}
+
+int8 is_phys_last(struct BlockMetaData *currBlock)
+{
+	return (((uint32)currBlock + currBlock->size) == (uint32)sbrk(0));
+}
+
+struct BlockMetaData *phys_next(struct BlockMetaData *currBlock)
+{
+	if(currBlock == NULL)
+		return NULL;
+
+	if(is_phys_last(currBlock))
+		return NULL;
+
+	return (struct BlockMetaData *)((uint32)currBlock + currBlock->size);
+}
+
+int8 is_phys_next_free(struct BlockMetaData *next)
+{
+	return (next != NULL && next->is_free)? 1 : 0;
+}
+
+int8 is_phys_prev_free(struct BlockMetaData *currBlock)
+{
+	struct BlockMetaData *prev_free = LIST_PREV(currBlock);
+	if(phys_next(prev_free) == currBlock)
+		return 1;
+	return 0;
+}
+
+void free_insert(struct BlockMetaData *newFreeBlock)
+{
+	if(LIST_EMPTY(&free_block_list))
+	{
+		cprintf(">> list is free\n");
+		LIST_INSERT_HEAD(&free_block_list, newFreeBlock);
+		LIST_LAST(&free_block_list) = newFreeBlock;
+		return;
+	}
+
+	if(newFreeBlock > LIST_LAST(&free_block_list))
+	{
+		LIST_INSERT_TAIL(&free_block_list, newFreeBlock);
+		return;
+	}
+
+	struct BlockMetaData *currBlock = NULL;
+	LIST_FOREACH(currBlock, &free_block_list)
+	{
+		if(newFreeBlock < currBlock)
+		{
+			LIST_INSERT_BEFORE(&free_block_list, currBlock, newFreeBlock);
+			return;
+		}
+	}
+}
 
 void setVBlock0(struct BlockMetaData *MetaData)
 {
 	MetaData->is_free = 0;
 	MetaData->size = 0;
-	LIST_REMOVE(&MemoryList ,MetaData);
-	//free(MetaData);
+	LIST_REMOVE(&free_block_list ,MetaData);
 }
 
-void *free_and_allocff(void* va, uint32 new_size)
+void *allocff_and_free(void* va, uint32 new_size)
 {
-	//free_block(va);
 	void * ret = alloc_block_FF(new_size);
 	if(ret != NULL)  //allocation succeeded
 	{
 		free_block(va);
-		return alloc_block_FF(new_size);
 	}
-	else {  // allocation failed
-		return (void*)-1;
-	}
+	return NULL;
 }
 
 void split_block(struct BlockMetaData *currBlock , uint32 size)
 {
-	uint32 remSpace = currBlock->size- size - sizeOfMetaData();
-	if(remSpace>=sizeOfMetaData())
+	uint32 remSpace = (currBlock->size - sizeOfMetaData()) - size;
+	if(remSpace >= sizeOfMetaData())
 	{
 		currBlock->size -= remSpace;
 		struct BlockMetaData *newBlock = (struct BlockMetaData *)((uint32)currBlock + currBlock->size);
 		newBlock->is_free = 1;
 		newBlock->size = remSpace;
-		LIST_INSERT_AFTER(&MemoryList, currBlock, newBlock);
+		if(currBlock->is_free){
+			LIST_INSERT_AFTER(&free_block_list, currBlock, newBlock);
+		}
+		else{
+			free_block(newBlock);
+		}
+	}
+	if(currBlock->is_free){
+		currBlock->is_free = 0;
+		LIST_REMOVE(&free_block_list, currBlock);
+	}
+}
+
+void* call_sbrk(void *old_brk, uint32 size)
+{
+	called_sbrk = 1;
+	struct BlockMetaData *meta_data = (struct BlockMetaData *)(old_brk);
+	meta_data->size = sbrk(0) - old_brk;
+	meta_data->is_free = 1;
+	LIST_INSERT_TAIL(&free_block_list, meta_data);
+
+//	meta_data->is_free = 0;
+	split_block(meta_data, size);
+
+	size_called_sbrk=size;
+
+	return (meta_data + 1);
+}
+
+void merge_prev(struct BlockMetaData *currBlock)
+{
+	if(is_phys_prev_free(currBlock))
+	{
+		LIST_PREV(currBlock)->size += currBlock->size;
+		update_call_sbrk(currBlock->size);
+		setVBlock0(currBlock);
 	}
 }
 
@@ -105,15 +198,27 @@ void print_blocks_list(struct MemBlock_LIST list)
 {
 	cprintf("=========================================\n");
 	struct BlockMetaData* blk ;
-	int ctr = 0;
 	cprintf("\nDynAlloc Blocks List:\n");
 	LIST_FOREACH(blk, &list)
 	{
-		cprintf("ctr = %d (address: %x, size: %d, isFree: %d)\n",ctr,blk, blk->size, blk->is_free) ;
-		ctr++;
+//		cprintf("(size: %d, isFree: %d)\n", blk->size, blk->is_free) ;
+		cprintf("(blk: %x, size: %d)\n", blk, blk->size) ;
 	}
 	cprintf("=========================================\n");
+}
 
+void print_blocks_list_tail(struct MemBlock_LIST list, int num)
+{
+	cprintf("=========================================\n");
+	struct BlockMetaData* blk ;
+	int ctr = 1;
+	cprintf("\nDynAlloc Blocks List:\n");
+	for(blk = LIST_LAST(&list); ctr <= num-1 ; blk = LIST_PREV(blk), ctr++);
+	for(; blk != NULL; blk = LIST_NEXT(blk))
+	{
+		cprintf("(size: %d, isFree: %d)\n", blk->size, blk->is_free) ;
+	}
+	cprintf("=========================================\n");
 }
 
 //
@@ -124,6 +229,7 @@ void print_blocks_list(struct MemBlock_LIST list)
 //============================ REQUIRED FUNCTIONS ==================================//
 //==================================================================================//
 
+bool is_initialized = 0;
 //==================================
 // [1] INITIALIZE DYNAMIC ALLOCATOR:
 //==================================
@@ -134,8 +240,11 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 	//DON'T CHANGE THESE LINES=================
 	if (initSizeOfAllocatedSpace == 0)
 		return ;
+
+	is_initialized = 1;
 	//=========================================
 	//=========================================
+	//cprintf(brk);
 
 	//TODO: [PROJECT'23.MS1 - #5] [3] DYNAMIC ALLOCATOR - initialize_dynamic_allocator()
 	//panic("initialize_dynamic_allocator is not implemented yet");
@@ -147,11 +256,10 @@ void initialize_dynamic_allocator(uint32 daStart, uint32 initSizeOfAllocatedSpac
 	metaData->prev_next_info.le_next=NULL;
 	metaData->prev_next_info.le_prev=NULL;
 
-	LIST_INIT(&MemoryList);
-	LIST_INSERT_HEAD(&MemoryList, metaData);
-	LIST_LAST(&MemoryList) = metaData;
+	LIST_INIT(&free_block_list);
+	LIST_INSERT_HEAD(&free_block_list, metaData);
+	LIST_LAST(&free_block_list) = metaData;
 }
-
 //=========================================
 // [4] ALLOCATE BLOCK BY FIRST FIT:
 //=========================================
@@ -162,25 +270,71 @@ void *alloc_block_FF(uint32 size)
     //panic("alloc_block_FF is not implemented yet");
     if(size==0) return NULL;
 
-    struct BlockMetaData *currBlock;
-    uint32 emptySpace, remSpace;
-    LIST_FOREACH(currBlock, &MemoryList)
+    //cprintf(">> allocate size = %d\n", size+16);
+    if (!is_initialized)
     {
-    	if(currBlock->is_free)
-    	{
-    		emptySpace = currBlock->size - sizeOfMetaData();
-    		if(emptySpace >= size)
-    		{
-    			currBlock->is_free = 0;
-    			split_block(currBlock,size);
-    			return (currBlock + 1);
-    		}
-    	}
+//    	cprintf("block allocator initializing\n");
+		uint32 required_size = size + sizeOfMetaData();
+		uint32 da_start = (uint32)sbrk(required_size);
+		//get new break since it's page aligned! thus, the size can be more than the required one
+		uint32 da_break = (uint32)sbrk(0);
+		initialize_dynamic_allocator(da_start, da_break - da_start);
+    	//cprintf("block allocator initialized\n");
     }
 
-    if(sbrk(size) != (void*)-1){
-    	return alloc_block_FF(size);
+    struct BlockMetaData *currBlock;
+    uint32 emptySpace, remSpace;
+  //  cprintf("size out : %d crrrr : %d \n",size ,crrrr++ );
+//    if(called_sbrk == 1 )
+    if(0)
+    {
+    	// cprintf("size in : %d \n",size );
+    	if(size >= size_called_sbrk)
+    	{
+    		emptySpace = LIST_LAST(&free_block_list)->size - sizeOfMetaData();
+			if(emptySpace >= size && (LIST_LAST(&free_block_list)->is_free == 1))
+			{
+//    		  	call_sbrk=2;
+//				LIST_LAST(&free_block_list)->is_free = 0;
+				struct BlockMetaData *list_ll= LIST_LAST(&free_block_list);
+				split_block(LIST_LAST(&free_block_list),size);
+				if(LIST_LAST(&free_block_list)->size < size)
+					called_sbrk = 0;
+				return (list_ll + 1);
+			}
+			else
+			{
+				void * old_brk = sbrk(size);
+				if(old_brk != (void*)-1)
+				{
+					return call_sbrk(old_brk, size);
+				}
+				// cprintf("\n======> sbrk called and failed\n");
+				return NULL;
+			}
+    	}
+
     }
+
+    LIST_FOREACH(currBlock, &free_block_list)
+    {
+    	emptySpace = currBlock->size - sizeOfMetaData();
+		if(emptySpace >= size)
+		{
+//			currBlock->is_free = 0;
+			split_block(currBlock,size);
+			return (currBlock + 1);
+		}
+    }
+
+   // cprintf("sbreak called \n");
+    return NULL;
+    void * old_brk = sbrk(size);
+    if(old_brk != (void*)-1)
+    {
+    	return call_sbrk(old_brk, size);
+    }
+    // cprintf("\n======> sbrk called and failed\n");
 
     return NULL;
 }
@@ -197,7 +351,7 @@ void *alloc_block_BF(uint32 size)
 	    struct BlockMetaData *bestFitBlock = NULL;
 
 	    uint32 emptySpace;
-	    LIST_FOREACH(currBlock, &MemoryList)
+	    LIST_FOREACH(currBlock, &free_block_list)
 	    {
 	    	if(currBlock->is_free)
 	    	{
@@ -216,14 +370,16 @@ void *alloc_block_BF(uint32 size)
 	    	}
 	    }
 	    if (bestFitBlock == NULL){
+	    	void * old_brk = sbrk(size);
 	    	if (sbrk(size) != (void*)-1) {
-	    		return alloc_block_BF(size);
+	    		return call_sbrk(old_brk, size);
+//	    		return alloc_block_BF(size);
 	    	}
 	    	return NULL;
 	    }
 
-	    bestFitBlock->is_free = 0;
-	    emptySpace = bestFitBlock->size - sizeOfMetaData();
+//	    bestFitBlock->is_free = 0;
+//	    emptySpace = bestFitBlock->size - sizeOfMetaData();
 	    split_block(bestFitBlock,size);
 	    return bestFitBlock+1;
 }
@@ -251,69 +407,24 @@ void *alloc_block_NF(uint32 size)
 //===================================================
 void free_block(void *va)
 {
+	//cprintf(" address in free .... = %x \n\n" , va);
 	//TODO: [PROJECT'23.MS1 - #7] [3] DYNAMIC ALLOCATOR - free_block()
-
 	struct BlockMetaData *currBlock = ((struct BlockMetaData *)va - 1);
-	struct BlockMetaData *first_element = LIST_FIRST(&MemoryList);
-	struct BlockMetaData *last_element = LIST_LAST(&MemoryList);
-	struct BlockMetaData *nextBlock = LIST_NEXT(currBlock);
-	struct BlockMetaData *prevBlock = LIST_PREV(currBlock);
+	currBlock->is_free = 1;
+	struct BlockMetaData *next = phys_next(currBlock);
 
+	if(is_phys_next_free(next))
+	{
+		currBlock->size += next->size;
+		update_call_sbrk(currBlock->size);
+		LIST_INSERT_BEFORE(&free_block_list, next, currBlock);
+		setVBlock0(next);
+		merge_prev(currBlock);
+		return;
+	}
 
-	if(!(currBlock == first_element || currBlock == last_element))
-	{
-		if(nextBlock->is_free == 1 && prevBlock->is_free == 1) //next and prev  are empty
-		{
-			prevBlock->size += currBlock->size + nextBlock->size;
-			setVBlock0(nextBlock);
-			setVBlock0(currBlock);
-		}
-		else if (nextBlock->is_free == 0 && prevBlock->is_free == 0)//next and prev  are not empty
-		{
-			currBlock->is_free = 1;
-		}
-		else if(nextBlock->is_free == 1 && prevBlock->is_free == 0)// next is empty
-		{
-			currBlock->size += nextBlock->size;
-			currBlock->is_free = 1;
-			setVBlock0(nextBlock);
-		}
-		else if(nextBlock->is_free == 0 && prevBlock->is_free == 1) // prev is empty
-		{
-			prevBlock->size += currBlock->size;
-			setVBlock0(currBlock);
-		}
-	}
-	else if(currBlock == first_element && currBlock == last_element) // there is one block in the list
-	{
-		currBlock->is_free = 1;
-	}
-	else if(currBlock == first_element)
-	{
-		if(nextBlock->is_free == 1)
-		{
-			currBlock->size += nextBlock->size;
-			currBlock->is_free = 1;
-			setVBlock0(nextBlock);
-		}
-		else
-		{
-			currBlock->is_free = 1;
-		}
-
-	}
-	else if(currBlock == last_element)
-	{
-		if(prevBlock->is_free == 1)
-		{
-			prevBlock->size += currBlock->size;
-			setVBlock0(currBlock);
-		}
-		else
-		{
-			currBlock->is_free = 1;
-		}
-	}
+	free_insert(currBlock);
+	merge_prev(currBlock);
 }
 
 //=========================================
@@ -327,24 +438,22 @@ void *realloc_block_FF(void* va, uint32 new_size)
 
 	if(va == NULL && new_size == 0)
 	{
-		cprintf("\n>>>>>>>>>1 \n");
 		return NULL;
 	}
-	else if(va == NULL )
+	else if(va == NULL)
 	{
-		cprintf("\n>>>>>>>>>2 \n");
 		void * ret = alloc_block_FF(new_size);
 		if(ret != NULL)  //allocation succeeded
 		{
 			return ret;
 		}
-		else {  // allocation failed
-			return (void*)-1;
+		else
+		{  // allocation failed
+			return va;
 		}
 	}
-	else if( new_size == 0 )
+	else if(new_size == 0)
 	{
-		cprintf("\n>>>>>>>>>3 \n");
 	    free_block(va);
 	    return NULL;
 	}
@@ -352,93 +461,85 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		return NULL;
 	}
 
+	/*-----------------------------------------------------------------------------
+	 * new size > old size
+	 * 					- next is free
+	 * 					 			a- total size >= new size ==> split next
+	 * 					 			b- total size < new size  ==> alloc and free
+	 * 					c- next is not free ==> alloc and free
+	 * 					d- has no next ==> alloc and free
+	 *
+	 * a ==> split next
+	 * b,c,d ==> alloc and free
+	 * -----------------------------------------------------------------------------
+	 *
+	 * new size < old size
+	 * 					e- next is free ==> split and merge
+	 * 					f- next is not free ==> split and free
+	 * 					g- has no next ==> split and free
+	 *
+	 * e ==> split and merge
+	 * f,g ==> split and free
+	 * -----------------------------------------------------------------------------
+	 */
+
 	struct BlockMetaData *currBlock = ((struct BlockMetaData *)va - 1);
-	uint32 totalFreeSize, remSpace ;
-	struct BlockMetaData *nextBlock = LIST_NEXT(currBlock);
+	uint32 old_size = currBlock->size - sizeOfMetaData();
 
-	if(nextBlock != NULL)  // if it has a next node
+	struct BlockMetaData *nextBlock = phys_next(currBlock);
+	cprintf(">> currBlock = %x, nextBlock = %x\n", currBlock, nextBlock);
+	cprintf(">> currBlock->size = %d, new_size = %d\n", currBlock->size, new_size);
+	cprintf("list before :\n");
+	print_blocks_list(free_block_list);
+
+	if(new_size == old_size){
+		cprintf("1\n");
+		return va;
+	}
+	if(new_size > old_size)
 	{
-		if(currBlock->size - sizeOfMetaData() < new_size)  // new size is bigger than current size
+		cprintf("2\n");
+		if(is_phys_next_free(nextBlock) && nextBlock->size + old_size >= new_size)
 		{
-			if(nextBlock->is_free)   // if next free
-			{
-				totalFreeSize = currBlock->size + nextBlock->size - sizeOfMetaData();
-		    	if(totalFreeSize == new_size)    // if next free and total size == new size
-		    	{
-		    		cprintf("\n>>>>>>>>>4 \n");
-		    		currBlock->size = new_size + sizeOfMetaData();
-		    		setVBlock0(nextBlock);
-		    		return va;
-		    	}
-		    	else if (totalFreeSize > new_size)    // if next free and total size > new size
-		    	{
-		    		cprintf("\n>>>>>>>>>5 \n");
-		    		currBlock->size= totalFreeSize+sizeOfMetaData();  // split will handle it it's not your business
-		    		setVBlock0(nextBlock);
-		    		split_block(currBlock,new_size);
-					return va;
-		    	}
-		    	else if (totalFreeSize < new_size)    // if next free and total size < new size call free bloc and after allocate the bloc by FF
-		    	{
-		    		cprintf("\n new_size ====================== %d \n", new_size);
-
-		    		cprintf("\n>>>>>>>>>6 \n");
-		    		void* address = free_and_allocff(va, (new_size));
-		    		cprintf("in reallocate returened address %x \n",address);
-		    		print_blocks_list(MemoryList);
-		    		return address;
-		    	}
-			}
-			else {  // next is not free
-	    		cprintf("\n>>>>>>>>>7 \n");
-				return free_and_allocff(va, new_size);
-			}
-		}
-		else if ( currBlock->size - sizeOfMetaData() > new_size )  // new size is smaller than current size
-		{
-			if(nextBlock->is_free == 0)   // next is not free  (full)
-			{
-	    		cprintf("\n>>>>>>>>>8 \n");
-				split_block(currBlock,new_size);
-			}
-			else // next is free
-			{
-	    		remSpace = (currBlock->size - new_size - sizeOfMetaData());
-	    		currBlock->size = new_size + sizeOfMetaData();
-	    		struct BlockMetaData *newBlock = (struct BlockMetaData *)((uint32)currBlock + currBlock->size);
-	    		newBlock->is_free = 1;
-	    		newBlock->size = remSpace + nextBlock->size;
-	    		LIST_INSERT_AFTER(&MemoryList, currBlock, newBlock);
-	    		setVBlock0(nextBlock);
-			}
+			cprintf("3\n");
+			//a ==> split next
+			split_block(nextBlock, new_size - old_size - sizeOfMetaData());
+			currBlock->size += nextBlock->size;
+//			setVBlock0(nextBlock);
+			nextBlock->size = 0;
 			return va;
 		}
-		else if ( currBlock->size - sizeOfMetaData() == new_size ) // new size is equal to current size
+		else
 		{
-    		cprintf("\n>>>>>>>>>10 \n");
-			return va;
+			cprintf("4\n");
+			//b,c,d ==> alloc and free
+			void *ret =  allocff_and_free(va, new_size);
+			if(ret == NULL)
+				return va;
+			else return ret;
 		}
 	}
-	else   // if the node is at the tail or at the its just one node and head and tail
+	else if(new_size < old_size)
 	{
-		if(currBlock->size - sizeOfMetaData() < new_size)// new size is greater than current (last) size
+		cprintf("5\n");
+		if(is_phys_next_free(nextBlock))
 		{
-    		cprintf("\n>>>>>>>>>11 \n");
-			return free_and_allocff(va, new_size);
+			cprintf("6\n");
+			//e ==> split and merge
+			split_block(currBlock, new_size);
+//			free_block(LIST_PREV(nextBlock));
 		}
-		else if(currBlock->size - sizeOfMetaData() > new_size)  // new size is smaller than current (last) size
+		else
 		{
-			split_block(currBlock,new_size);
-    		cprintf("\n>>>>>>>>>12 \n");
-			return va;
+			cprintf("7\n");
+			//f,g ==> split and free
+			split_block(currBlock, new_size);
 		}
-		else {
-    		cprintf("\n>>>>>>>>>13 \n");
-			return va;
-		}
+		return va;
 	}
-	cprintf("\n>>>>>>>>>14 \n");
+	cprintf("list after :\n");
+	print_blocks_list(free_block_list);
+
 	return NULL;
 }
-
 
