@@ -24,11 +24,12 @@ void setVBlock0(struct BlockMetaData *MetaData)
 
 void *free_and_allocff(void* va, uint32 new_size)
 {
+	//free_block(va);
 	void * ret = alloc_block_FF(new_size);
 	if(ret != NULL)  //allocation succeeded
 	{
 		free_block(va);
-		return ret;
+		return alloc_block_FF(new_size);
 	}
 	else {  // allocation failed
 		return (void*)-1;
@@ -104,10 +105,12 @@ void print_blocks_list(struct MemBlock_LIST list)
 {
 	cprintf("=========================================\n");
 	struct BlockMetaData* blk ;
+	int ctr = 0;
 	cprintf("\nDynAlloc Blocks List:\n");
 	LIST_FOREACH(blk, &list)
 	{
-		cprintf("(size: %d, isFree: %d)\n", blk->size, blk->is_free) ;
+		cprintf("ctr = %d (address: %x, size: %d, isFree: %d)\n",ctr,blk, blk->size, blk->is_free) ;
+		ctr++;
 	}
 	cprintf("=========================================\n");
 
@@ -324,12 +327,12 @@ void *realloc_block_FF(void* va, uint32 new_size)
 
 	if(va == NULL && new_size == 0)
 	{
-		//cprintf("\n>>>>>>>>>1 \n");
+		cprintf("\n>>>>>>>>>1 \n");
 		return NULL;
 	}
 	else if(va == NULL )
 	{
-		//cprintf("\n>>>>>>>>>2 \n");
+		cprintf("\n>>>>>>>>>2 \n");
 		void * ret = alloc_block_FF(new_size);
 		if(ret != NULL)  //allocation succeeded
 		{
@@ -341,7 +344,7 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	}
 	else if( new_size == 0 )
 	{
-		//cprintf("\n>>>>>>>>>3 \n");
+		cprintf("\n>>>>>>>>>3 \n");
 	    free_block(va);
 	    return NULL;
 	}
@@ -362,14 +365,14 @@ void *realloc_block_FF(void* va, uint32 new_size)
 				totalFreeSize = currBlock->size + nextBlock->size - sizeOfMetaData();
 		    	if(totalFreeSize == new_size)    // if next free and total size == new size
 		    	{
-		    		//cprintf("\n>>>>>>>>>4 \n");
+		    		cprintf("\n>>>>>>>>>4 \n");
 		    		currBlock->size = new_size + sizeOfMetaData();
 		    		setVBlock0(nextBlock);
 		    		return va;
 		    	}
 		    	else if (totalFreeSize > new_size)    // if next free and total size > new size
 		    	{
-		    		//cprintf("\n>>>>>>>>>5 \n");
+		    		cprintf("\n>>>>>>>>>5 \n");
 		    		currBlock->size= totalFreeSize+sizeOfMetaData();  // split will handle it it's not your business
 		    		setVBlock0(nextBlock);
 		    		split_block(currBlock,new_size);
@@ -377,12 +380,17 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		    	}
 		    	else if (totalFreeSize < new_size)    // if next free and total size < new size call free bloc and after allocate the bloc by FF
 		    	{
-		    		//cprintf("\n>>>>>>>>>6 \n");
-		    		return free_and_allocff(va, new_size);
+		    		cprintf("\n new_size ====================== %d \n", new_size);
+
+		    		cprintf("\n>>>>>>>>>6 \n");
+		    		void* address = free_and_allocff(va, (new_size));
+		    		cprintf("in reallocate returened address %x \n",address);
+		    		print_blocks_list(MemoryList);
+		    		return address;
 		    	}
 			}
 			else {  // next is not free
-	    		//cprintf("\n>>>>>>>>>7 \n");
+	    		cprintf("\n>>>>>>>>>7 \n");
 				return free_and_allocff(va, new_size);
 			}
 		}
@@ -390,7 +398,7 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		{
 			if(nextBlock->is_free == 0)   // next is not free  (full)
 			{
-	    		//cprintf("\n>>>>>>>>>8 \n");
+	    		cprintf("\n>>>>>>>>>8 \n");
 				split_block(currBlock,new_size);
 			}
 			else // next is free
@@ -407,7 +415,7 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		}
 		else if ( currBlock->size - sizeOfMetaData() == new_size ) // new size is equal to current size
 		{
-    		//cprintf("\n>>>>>>>>>10 \n");
+    		cprintf("\n>>>>>>>>>10 \n");
 			return va;
 		}
 	}
@@ -415,21 +423,22 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	{
 		if(currBlock->size - sizeOfMetaData() < new_size)// new size is greater than current (last) size
 		{
-    		//cprintf("\n>>>>>>>>>11 \n");
+    		cprintf("\n>>>>>>>>>11 \n");
 			return free_and_allocff(va, new_size);
 		}
 		else if(currBlock->size - sizeOfMetaData() > new_size)  // new size is smaller than current (last) size
 		{
 			split_block(currBlock,new_size);
-    		//cprintf("\n>>>>>>>>>12 \n");
+    		cprintf("\n>>>>>>>>>12 \n");
 			return va;
 		}
 		else {
-    		//cprintf("\n>>>>>>>>>13 \n");
+    		cprintf("\n>>>>>>>>>13 \n");
 			return va;
 		}
 	}
-	//cprintf("\n>>>>>>>>>14 \n");
+	cprintf("\n>>>>>>>>>14 \n");
 	return NULL;
 }
+
 
