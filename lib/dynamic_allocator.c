@@ -296,12 +296,16 @@ void *alloc_block_FF(uint32 size)
     struct BlockMetaData *currBlock;
     uint32 emptySpace, remSpace;
   //  cprintf("size out : %d crrrr : %d \n",size ,crrrr++ );
-//    if(called_sbrk == 1 )
-    if(0)
+    if(called_sbrk == 1 )
+  //  if(0)
     {
     	// cprintf("size in : %d \n",size );
     	if(size >= size_called_sbrk)
     	{
+    		void* break_line = sbrk(0);
+    		void* vaaa = LIST_LAST(&free_block_list);
+    		if( vaaa >= break_line)
+    		{
     		emptySpace = LIST_LAST(&free_block_list)->size - sizeOfMetaData();
 			if(emptySpace >= size && (LIST_LAST(&free_block_list)->is_free == 1))
 			{
@@ -323,6 +327,7 @@ void *alloc_block_FF(uint32 size)
 				// cprintf("\n======> sbrk called and failed\n");
 				return NULL;
 			}
+    	 }
     	}
 
     }
