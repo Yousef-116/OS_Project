@@ -488,8 +488,10 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 			void *new_va = alloc_block_FF(new_size);
 			if(new_va != NULL)
 			{
-				int nxt_index = index + kmanga[index];
-				realloc_data(virtual_address, index_to_Kva(nxt_index), new_va);
+//				int nxt_index = index + kmanga[index];
+//				realloc_data(virtual_address, index_to_Kva(nxt_index), new_va);
+				struct BlockMetaData *allocated_block = ((struct BlockMetaData *)new_va - 1);
+				realloc_data(virtual_address, ((void *)allocated_block + allocated_block->size), new_va);
 				kfree(virtual_address);
 				return new_va;
 			}
