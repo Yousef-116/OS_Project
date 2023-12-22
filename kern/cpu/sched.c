@@ -167,13 +167,14 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 	//panic("Not implemented yet");
 
 	sched_delete_ready_queues();
-	env_ready_queues = kmalloc(sizeof(struct Env_Queue) * numOfLevels);
+	env_ready_queues = (struct Env_Queue* )kmalloc(sizeof(struct Env_Queue) * numOfLevels);
 	quantums = kmalloc(sizeof(uint8));
 
 	load_avg = fix_int(0);
 	quantums[0] = quantum;
 	kclock_set_quantum(quantums[0]);
 	num_of_ready_queues = numOfLevels;
+	Seconds = 0;
 
 	for(int i = 0 ; i < numOfLevels ; i++)
 	{
@@ -237,7 +238,6 @@ struct Env* fos_scheduler_BSD()
 // [8] Clock Interrupt Handler
 //	  (Automatically Called Every Quantum)
 //========================================
-uint32 Seconds = 0;
 void clock_interrupt_handler()
 {
 	//TODO: [PROJECT'23.MS3 - #5] [2] BSD SCHEDULER - Your code is here
@@ -247,6 +247,7 @@ void clock_interrupt_handler()
 //		sched_print_all();
 //		uint32 seconds = ROUNDDOWN((timer_ticks()+1)*(*quantums), 1000)/1000;
 		uint32 seconds = ((timer_ticks()+1)*(*quantums))/1000;
+		cprintf("timer_ticks() = %lld\n", timer_ticks());
 //		cprintf("Seconds = %d,  quantum = %d,  timer_ticks() = %lld,  seconds = %d\n",Seconds, *quantums, timer_ticks(), seconds);
 
 //		num_of_ready_processes--;
@@ -292,26 +293,25 @@ void clock_interrupt_handler()
 			//update recent cpu time once per second for every process
 			{
 				//cprintf(">> update recent cpu time once per second for every process\n");
+				fixed_point_t R1 = fix_scale(load_avg, 2);
+				fixed_point_t R2 = fix_add(R1, fix_int(1));
+				fixed_point_t R3 = fix_div(R1, R2);
+				fixed_point_t R4;
+
 				for(int i = 0; i < num_of_ready_queues ; i++)
 				{
 					struct Env *all_env;
 					LIST_FOREACH(all_env, &env_ready_queues[i])
 					{
-						if(all_env != NULL)
+//						if(all_env != NULL)
 						{
-							fixed_point_t R1 = fix_scale(load_avg, 2);
-							fixed_point_t R2 = fix_add(R1, fix_int(1));
-							R1 = fix_div(R1, R2);
-							R2 = fix_mul(R1, all_env->recent_cpu_time);
-							all_env->recent_cpu_time = fix_add(R2, fix_int(all_env->nice_value));
+							R4 = fix_mul(R3, all_env->recent_cpu_time);
+							all_env->recent_cpu_time = fix_add(R4, fix_int(all_env->nice_value));
 						}
 					}
 				}
-				fixed_point_t R1 = fix_scale(load_avg, 2);
-				fixed_point_t R2 = fix_add(R1, fix_int(1));
-				R1 = fix_div(R1, R2);
-				R2 = fix_mul(R1, curenv->recent_cpu_time);
-				curenv->recent_cpu_time = fix_add(R2, fix_int(curenv->nice_value));
+				R4 = fix_mul(R3, curenv->recent_cpu_time);
+				curenv->recent_cpu_time = fix_add(R4, fix_int(curenv->nice_value));
 			}
 		}
 
@@ -322,7 +322,7 @@ void clock_interrupt_handler()
 		{
 			uint8 envManga[5000] = { };
 			// update priority of all processes and change it's level
-			for(int i = 0; i < num_of_ready_queues ; i++)
+			for(int i = 0; i < num_of_ready_queues ; ++i)
 			{
 				struct Env *all_env;
 				LIST_FOREACH(all_env, &env_ready_queues[i])

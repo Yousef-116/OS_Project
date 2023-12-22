@@ -21,6 +21,7 @@ void env_set_nice(struct Env* e, int nice_value) ;
 int env_get_recent_cpu(struct Env* e) ;
 int get_load_average() ;
 fixed_point_t load_avg;           // Me
+uint32 Seconds;                   // Me
 /********* for BSD Priority Scheduler *************/
 
 void sched_insert_ready0(struct Env* env);
