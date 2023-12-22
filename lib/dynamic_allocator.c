@@ -147,9 +147,9 @@ void* call_sbrk(void *old_brk, uint32 size)
 
 void realloc_data(char *old_va, char* end, char *new_va)
 {
-	for(uint32 i = 0x0; (old_va + i) < end; i += sizeof(char))
+	for(; old_va < end; ++old_va, ++new_va)
 	{
-		*(new_va + i) = *(old_va + i);
+		*(new_va) = *(old_va);
 	}
 }
 
@@ -521,7 +521,7 @@ void *realloc_block_FF(void* va, uint32 new_size)
 			void *new_va =  allocff_and_free(va, new_size);
 			if(new_va != NULL)
 			{
-				realloc_data(va, (void *)nextBlock, new_va);
+				realloc_data(va, ((void *)currBlock + currBlock->size), new_va);
 				return new_va;
 			}
 		}

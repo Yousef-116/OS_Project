@@ -45,6 +45,8 @@ int8 is_free_block(void* va);
 void print_blocks_list(struct MemBlock_LIST list);
 //===================================================================
 
+void realloc_data(char *old_va, char* end, char *new_va);
+
 //Required Functions
 //In KernelHeap: should be implemented inside kern/mem/kheap.c
 //In UserHeap: should be implemented inside lib/uheap.c

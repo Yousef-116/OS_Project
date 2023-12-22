@@ -441,26 +441,15 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 		}
 		else
 		{
-			void* ret = kmalloc(new_size);
-			if (ret != NULL) {
-				free_block(virtual_address);
-				return ret;
-			}
-			else {
-				return virtual_address;
-			}
-		}
-	}
-	else
-	{
-		if (new_size <= DYN_ALLOC_MAX_BLOCK_SIZE)
-		{
-			void * ret = alloc_block_FF(new_size);
-			if(ret != NULL)
+			void *new_va =  kmalloc_and_kfree(virtual_address, new_size);
+			if(new_va != NULL)
 			{
-				kfree(virtual_address);
-				return ret;
+				// Here we should transfer the data.
+				struct BlockMetaData *currBlock = ((struct BlockMetaData *)virtual_address - 1);
+				realloc_data(virtual_address, ((void *)currBlock + currBlock->size), new_va);
+				return new_va;
 			}
+			return virtual_address;
 		}
 	}
 
@@ -470,7 +459,7 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 	}
 	else if (kmanga[index] < num_of_req_pages)  //new size is greater
 	{
-		int nxt_index = index + kmanga[index];int ctr = 0;
+		int nxt_index = index + kmanga[index], ctr = 0;
 		for(int i = nxt_index; i<kmanga_size; ++i)
 		{
 			if(kmanga[i] > 0 || ctr == num_of_req_pages)
@@ -486,6 +475,7 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 			if(new_va != NULL)
 			{
 				// Here we should transfer the data.
+				realloc_data(virtual_address, index_to_Kva(nxt_index), new_va);
 				return new_va;
 			}
 		}
@@ -493,6 +483,17 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 	}
 	else if (kmanga[index] > num_of_req_pages)  //new size is smaller
 	{
+		if (new_size <= DYN_ALLOC_MAX_BLOCK_SIZE)
+		{
+			void *new_va = alloc_block_FF(new_size);
+			if(new_va != NULL)
+			{
+				int nxt_index = index + kmanga[index];
+				realloc_data(virtual_address, index_to_Kva(nxt_index), new_va);
+				kfree(virtual_address);
+				return new_va;
+			}
+		}
 		int remain_pages = kmanga[index] - num_of_req_pages;
 		kmanga[index] = num_of_req_pages;
 		kmanga[index + num_of_req_pages] = remain_pages;
