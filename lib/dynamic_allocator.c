@@ -120,8 +120,6 @@ void split_block(struct BlockMetaData *currBlock , uint32 size)
 			LIST_INSERT_AFTER(&free_block_list, currBlock, newBlock);
 		}
 		else {
-//			free_insert(newBlock);
-//			merge_prev(newBlock);
 			free_block(newBlock+1);
 		}
 	}
@@ -136,15 +134,13 @@ void split_block(struct BlockMetaData *currBlock , uint32 size)
 void* call_sbrk(void *old_brk, uint32 size)
 {
 	called_sbrk = 1;
+	size_called_sbrk = size;
+
 	struct BlockMetaData *meta_data = (struct BlockMetaData *)(old_brk);
 	meta_data->size = sbrk(0) - old_brk;
 	meta_data->is_free = 1;
 	LIST_INSERT_TAIL(&free_block_list, meta_data);
-
-//	meta_data->is_free = 0;
 	split_block(meta_data, size);
-
-	size_called_sbrk=size;
 
 	return (meta_data + 1);
 }
@@ -361,41 +357,38 @@ void *alloc_block_BF(uint32 size)
 	//panic("alloc_block_BF is not implemented yet");
 	 if(size==0) return NULL;
 
-	    struct BlockMetaData *currBlock;
-	    struct BlockMetaData *bestFitBlock = NULL;
+	struct BlockMetaData *currBlock;
+	struct BlockMetaData *bestFitBlock = NULL;
 
-	    uint32 emptySpace;
-	    LIST_FOREACH(currBlock, &free_block_list)
-	    {
-	    	if(currBlock->is_free)
-	    	{
-	    		emptySpace = currBlock->size - sizeOfMetaData();
-	    		if(emptySpace == size)
-	    		{
-	    			currBlock->is_free = 0;
-	    			return currBlock+1;
-	    		}
-	    		if(emptySpace > size)
-	    		{
-	    			if(bestFitBlock == NULL || bestFitBlock->size > currBlock->size){
-	    				bestFitBlock = currBlock;
-	    			}
-	    		}
-	    	}
-	    }
-	    if (bestFitBlock == NULL){
-	    	void * old_brk = sbrk(size);
-	    	if (sbrk(size) != (void*)-1) {
-	    		return call_sbrk(old_brk, size);
-//	    		return alloc_block_BF(size);
-	    	}
-	    	return NULL;
-	    }
+	uint32 emptySpace;
+	LIST_FOREACH(currBlock, &free_block_list)
+	{
+		emptySpace = currBlock->size - sizeOfMetaData();
+		if(emptySpace == size)
+		{
+			currBlock->is_free = 0;
+			return currBlock+1;
+		}
+		if(emptySpace > size)
+		{
+			if(bestFitBlock == NULL || bestFitBlock->size > currBlock->size){
+				bestFitBlock = currBlock;
+			}
+		}
+	}
+	if (bestFitBlock == NULL)
+	{
+		void *old_brk = sbrk(size);
+		if (old_brk != (void*)-1) {
+			return call_sbrk(old_brk, size);
+		}
+		return NULL;
+	}
 
 //	    bestFitBlock->is_free = 0;
-	    emptySpace = bestFitBlock->size - sizeOfMetaData();
-	    split_block(bestFitBlock,size);
-	    return bestFitBlock+1;
+	emptySpace = bestFitBlock->size - sizeOfMetaData();
+	split_block(bestFitBlock,size);
+	return bestFitBlock+1;
 }
 
 //=========================================
@@ -501,7 +494,7 @@ void *realloc_block_FF(void* va, uint32 new_size)
 	uint32 old_size = currBlock->size - sizeOfMetaData();
 
 	struct BlockMetaData *nextBlock = phys_next(currBlock);
-	cprintf(">> currBlock = %x, nextBlock = %x\n", currBlock, nextBlock);
+//	cprintf(">> currBlock = %x, nextBlock = %x\n", currBlock, nextBlock);
 //	cprintf(">> currBlock->size = %d, new_size = %d\n", currBlock->size, new_size);
 //	cprintf("list before :\n");
 //	print_blocks_list(free_block_list);
@@ -520,37 +513,23 @@ void *realloc_block_FF(void* va, uint32 new_size)
 			split_block(nextBlock, new_size - old_size - sizeOfMetaData());
 			currBlock->size += nextBlock->size;
 			setVBlock0(nextBlock);
-			return va;
 		}
 		else
 		{
 //			cprintf("4\n");
 			//b,c,d ==> alloc and free
 			void *ret =  allocff_and_free(va, new_size);
-
 			if(ret != NULL)
 			{
 				realloc_data(va, (void *)nextBlock, ret);
+				return ret;
 			}
-			return (ret == NULL)? va: ret;
 		}
+		return va;
 	}
 	else if(new_size < old_size)
 	{
-		if(is_phys_next_free(nextBlock)){
-			cprintf(">> Before: \n");
-			cprintf("new block = %x\n", phys_next(currBlock));
-			print_blocks_list(free_block_list);
-
-			split_block(currBlock, new_size);
-
-			cprintf(">> After: \n");
-			cprintf("new block = %x\n", phys_next(currBlock));
-			print_blocks_list(free_block_list);
-		}
-		else{
-			split_block(currBlock, new_size);
-		}
+		split_block(currBlock, new_size);
 		return va;
 	}
 
