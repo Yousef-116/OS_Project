@@ -518,11 +518,11 @@ void *realloc_block_FF(void* va, uint32 new_size)
 		{
 //			cprintf("4\n");
 			//b,c,d ==> alloc and free
-			void *ret =  allocff_and_free(va, new_size);
-			if(ret != NULL)
+			void *new_va =  allocff_and_free(va, new_size);
+			if(new_va != NULL)
 			{
-				realloc_data(va, (void *)nextBlock, ret);
-				return ret;
+				realloc_data(va, (void *)nextBlock, new_va);
+				return new_va;
 			}
 		}
 		return va;

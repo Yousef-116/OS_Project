@@ -167,6 +167,7 @@ void* sbrk(int increment) {
 			temp_brk += PAGE_SIZE;
 		}
 
+		/*
 		struct BlockMetaData *meta_data = LIST_LAST(&MemoryList);
 		while ((uint32) meta_data >= (uint32) new_brk) // remove any metaData above or equals new brk
 		{
@@ -175,11 +176,10 @@ void* sbrk(int increment) {
 		}
 
 		meta_data->size = new_brk - (uint32) meta_data; // last metaData under new brk - size equals space in between
+		*/
 
 		brk = new_brk;
-
 		return (void *) new_brk;
-
 	}
 	else // increment == 0
 	{
@@ -416,6 +416,23 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 //	return NULL;
 //	panic("krealloc() is not implemented yet...!!");
 
+
+	if (virtual_address == NULL && new_size == 0) {
+		return NULL;
+	}
+	else if (virtual_address == NULL) {
+		return kmalloc(new_size);
+	}
+	else if (new_size == 0) {
+		kfree(virtual_address);
+		return NULL;
+	}
+
+	int index = Kva_to_index(virtual_address);
+	if (kmanga[index] == 0) {  // is free
+		return NULL;
+	}
+
 	if ((uint32) virtual_address < brk)
 	{
 		//cprintf("dynamic allocator\n");
@@ -447,44 +464,32 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 		}
 	}
 
-	if (virtual_address == NULL && new_size == 0) {
-		return NULL;
-	}
-	else if (virtual_address == NULL) {
-		return kmalloc(new_size);
-	}
-	else if (new_size == 0) {
-		kfree(virtual_address);
-		return NULL;
-	}
-
-	int index = Kva_to_index(virtual_address);
-	if (kmanga[index] == 0) {  // is free
-		return NULL;
-	}
-
 	int num_of_req_pages = ROUNDUP(new_size, PAGE_SIZE) / PAGE_SIZE;
 	if (kmanga[index] == num_of_req_pages){
 		return virtual_address;
 	}
 	else if (kmanga[index] < num_of_req_pages)  //new size is greater
 	{
-		int nxt_index = index + kmanga[index];
-		if (nxt_index < kmanga_size) //not the last
+		int nxt_index = index + kmanga[index];int ctr = 0;
+		for(int i = nxt_index; i<kmanga_size; ++i)
 		{
-			int ctr = 0;
-			for(int i = nxt_index; i<kmanga_size; ++i)
+			if(kmanga[i] > 0 || ctr == num_of_req_pages)
+				break;
+			ctr++;
+		}
+		if(ctr == num_of_req_pages) {
+			kmanga[index] = num_of_req_pages;
+		}
+		else
+		{
+			void *new_va =  kmalloc_and_kfree(virtual_address, new_size);
+			if(new_va != NULL)
 			{
-				if(kmanga[i] > 0 || ctr == num_of_req_pages)
-					break;
-				ctr++;
-			}
-			if(ctr == num_of_req_pages) {
-				kmanga[index] = num_of_req_pages;
-				return virtual_address;
+				// Here we should transfer the data.
+				return new_va;
 			}
 		}
-		return kmalloc_and_kfree(virtual_address, new_size);
+		return virtual_address;
 	}
 	else if (kmanga[index] > num_of_req_pages)  //new size is smaller
 	{
