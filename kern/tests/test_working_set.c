@@ -12,9 +12,6 @@
 //2020
 int sys_check_LRU_lists(uint32* active_list_content, uint32* second_list_content, int actual_active_list_size, int actual_second_list_size)
 {
-	cprintf("CURRENT WS CONTENT BEFORE CHECKING:\n");
-	//env_page_ws_print(curenv);
-
 	struct Env* env = curenv;
 	int active_list_validation = 1;
 	int second_list_validation = 1;

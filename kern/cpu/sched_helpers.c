@@ -593,10 +593,10 @@ void env_set_nice(struct Env* e, int nice_value)
 	//Comment the following line
 	//panic("Not implemented yet");
 
-	if(nice_value < -20) nice_value = -20;
-	else if(nice_value > 20) nice_value = 20;
-
-	cprintf(">> set nice value\n");
+//	if(nice_value < -20) nice_value = -20;
+//	else if(nice_value > 20) nice_value = 20;
+//
+//	cprintf(">> set nice value\n");
 	e->nice_value = nice_value;
 	// update priority of the process without changing it's level
 	if(e->env_status != ENV_NEW)

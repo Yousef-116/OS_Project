@@ -452,33 +452,40 @@ void env_free(struct Env *e)
 	{
 		//panic("env_free() is not implemented yet...!!");
 
-		// free pages from ActiveList FCFS
-		struct WorkingSetElement* active_list_element = LIST_FIRST(&(e->ActiveList));
-		LIST_FOREACH(active_list_element, &(e->ActiveList))
+		if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 		{
-			env_page_ws_invalidate(e, active_list_element->virtual_address); // free page at given va
-		}
+			// free pages from ActiveList FCFS
+			struct WorkingSetElement* active_list_element = LIST_FIRST(&(e->ActiveList));
+			LIST_FOREACH(active_list_element, &(e->ActiveList))
+			{
+				env_page_ws_invalidate(e, active_list_element->virtual_address); // free page at given va
+			}
 
-		// free pages from SecondList LRU
-		struct WorkingSetElement* second_list_element = LIST_FIRST(&(e->SecondList));
-		LIST_FOREACH(second_list_element, &(e->SecondList))
+			// free pages from SecondList LRU
+			struct WorkingSetElement* second_list_element = LIST_FIRST(&(e->SecondList));
+			LIST_FOREACH(second_list_element, &(e->SecondList))
+			{
+				env_page_ws_invalidate(e, second_list_element->virtual_address);
+			}
+		}
+		else if (isPageReplacmentAlgorithmFIFO())
 		{
-			env_page_ws_invalidate(e, second_list_element->virtual_address);
+			// free pages from page_ws_list FIFO -- not sure about it
+			struct WorkingSetElement* ws_list_element = LIST_FIRST(&(e->page_WS_list));
+			LIST_FOREACH(ws_list_element, &(e->page_WS_list))
+			{
+				env_page_ws_invalidate(e, ws_list_element->virtual_address);
+			}
 		}
-
-		// free pages from page_ws_list FIFO -- not sure about it
-		struct WorkingSetElement* ws_list_element = LIST_FIRST(&(e->page_WS_list));
-		LIST_FOREACH(ws_list_element, &(e->page_WS_list))
-		{
-			env_page_ws_invalidate(e, ws_list_element->virtual_address);
-		}
-
 
 		// loop over all entries in the page directory
-		for (int i = 0; i < NPDENTRIES; i++) {
-		    if (pd_is_table_used((uint32*) e, e->env_page_directory[i])) {
+		for (int i = 0; i < NPDENTRIES; i++)
+		{
+		    if (pd_is_table_used((uint32*) e, e->env_page_directory[i]))
+		    {
 		    	pd_clear_page_dir_entry((uint32*)e, e->env_page_directory[i]); // set entry to NULL
 		 		pd_set_table_unused((uint32*) e, e->env_page_directory[i]); // mark as unused
+		    	cprintf("(void *)e->env_page_directory[i] = %x\n", (void *)e->env_page_directory[i]);
 		    	kfree((void *)e->env_page_directory[i]);
 		    }
 		}

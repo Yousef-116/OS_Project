@@ -250,10 +250,6 @@ void clock_interrupt_handler()
 		cprintf("timer_ticks() = %lld\n", timer_ticks());
 //		cprintf("Seconds = %d,  quantum = %d,  timer_ticks() = %lld,  seconds = %d\n",Seconds, *quantums, timer_ticks(), seconds);
 
-//		num_of_ready_processes--;
-		//cprintf("num_of_ready_processes = %d\n", num_of_ready_processes);
-
-
 		//𝒓𝒆𝒄𝒆𝒏𝒕_𝒄𝒑𝒖: updated on each timer tick for running process ==> incremented by 1
 		curenv->recent_cpu_time = fix_add(curenv->recent_cpu_time, fix_int(1));
 

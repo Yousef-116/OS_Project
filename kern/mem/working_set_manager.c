@@ -19,6 +19,9 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {
 	uint32 *ptr_page_table = NULL;
 	struct FrameInfo * frame = get_frame_info(e->env_page_directory, virtual_address, &ptr_page_table);
+	if(frame == 0){
+		return;
+	}
 	struct WorkingSetElement *wse = frame->element;
 	if(wse == NULL){
 //		panic("Trying to invalidate a null WS\n");

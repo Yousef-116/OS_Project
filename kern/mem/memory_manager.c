@@ -173,25 +173,30 @@ int allocate_frame(struct FrameInfo **ptr_frame_info)
 			}
 		}
 
-		while (*ptr_frame_info == NULL)
+		if(isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
 		{
-			//	2-	otherwise, free at least 1 frame from the user working set by applying the FIFO algorithm
-			for(int i = 0; i < num_of_ready_queues ; i++)
+			while (*ptr_frame_info == NULL)
 			{
-				struct Env *all_env;
-				LIST_FOREACH(all_env, &env_ready_queues[i])
+				//	2-	otherwise, free at least 1 frame from the user working set by applying the FIFO algorithm
+				for(int i = 0; i < num_of_ready_queues ; i++)
 				{
-					if(all_env != NULL)
+					struct Env *all_env;
+					LIST_FOREACH(all_env, &env_ready_queues[i])
 					{
-					struct WorkingSetElement * WStoFree = LIST_LAST(&(all_env->SecondList));
-					env_page_ws_invalidate(all_env, WStoFree->virtual_address);
+						if(all_env != NULL)
+						{
+							struct WorkingSetElement * WStoFree = LIST_LAST(&(all_env->SecondList));
+							env_page_ws_invalidate(all_env, WStoFree->virtual_address);
+						}
 					}
 				}
+				*ptr_frame_info = LIST_FIRST(&free_frame_list);
 			}
-			*ptr_frame_info = LIST_FIRST(&free_frame_list);
 		}
+
 		if(*ptr_frame_info == NULL){
-			cprintf("Couldn't free RAM/n");
+//			cprintf("Couldn't free RAM/n");
+			panic("Couldn't free RAM/n");
 		}
 
 

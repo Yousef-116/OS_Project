@@ -292,6 +292,9 @@ void kfree(void* virtual_address) {
 	// Write your code here, remove the panic and write your code
 	//panic("kfree() is not implemented yet...!!");
 
+	if(virtual_address == NULL)
+		return;
+
 	uint32 *ptr_page_table = NULL;
 	struct FrameInfo *ptr_frame_info = virtual_address;
 
@@ -446,7 +449,8 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 			{
 				// Here we should transfer the data.
 				struct BlockMetaData *currBlock = ((struct BlockMetaData *)virtual_address - 1);
-				realloc_data(virtual_address, ((void *)currBlock + currBlock->size), new_va);
+//				realloc_data(virtual_address, ((void *)currBlock + currBlock->size), new_va);
+				realloc_data(virtual_address, (virtual_address + currBlock->size), new_va);
 				return new_va;
 			}
 			return virtual_address;
@@ -490,8 +494,9 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 			{
 //				int nxt_index = index + kmanga[index];
 //				realloc_data(virtual_address, index_to_Kva(nxt_index), new_va);
-				struct BlockMetaData *allocated_block = ((struct BlockMetaData *)new_va - 1);
-				realloc_data(virtual_address, ((void *)allocated_block + allocated_block->size), new_va);
+//				struct BlockMetaData *allocated_block = ((struct BlockMetaData *)new_va - 1);
+//				realloc_data(virtual_address, ((void *)allocated_block + allocated_block->size), new_va);
+				realloc_data(virtual_address, (virtual_address + new_size), new_va);
 				kfree(virtual_address);
 				return new_va;
 			}
