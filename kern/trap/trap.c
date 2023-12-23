@@ -400,19 +400,19 @@ void fault_handler(struct Trapframe *tf)
 
 			// Unmarked and in user heap
 			if (!(perms & MARKED) && (fault_va >= faulted_env->dynamic_allocate_USER_heap_start && fault_va < USER_HEAP_MAX)){
-				cprintf("\n>> fault_va(%x) failed => pointing to umarked user heap page\n", fault_va);
+//				cprintf("\n>> fault_va(%x) failed => pointing to umarked user heap page\n", fault_va);
 				sched_kill_env(faulted_env->env_id);
 			}
 
 			// pointing to kernel
 			else if (fault_va >= USER_LIMIT){
-				cprintf("\n>> fault_va(%x) failed => pointing to kernal\n", fault_va);
+//				cprintf("\n>> fault_va(%x) failed => pointing to kernal\n", fault_va);
 				sched_kill_env(faulted_env->env_id);
 			}
 
             // Exist with read-only permissions
 			else if ((perms & PERM_PRESENT) && !(perms & PERM_WRITEABLE)){
-				cprintf("\n>> fault_va(%x) failed => due to wrong access rights\n", fault_va);
+//				cprintf("\n>> fault_va(%x) failed => due to wrong access rights\n", fault_va);
 				sched_kill_env(faulted_env->env_id);
 			}
 

@@ -361,6 +361,7 @@ void *alloc_block_BF(uint32 size)
 		if(emptySpace == size)
 		{
 			currBlock->is_free = 0;
+			LIST_REMOVE(&free_block_list, currBlock);
 			return currBlock+1;
 		}
 		if(emptySpace > size)

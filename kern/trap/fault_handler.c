@@ -88,7 +88,7 @@ bool alloc_and_read_from_file(uint32 fault_va)
 //		cprintf(">> Not in disk...");
 		if(!(fault_va >= USTACKBOTTOM && fault_va < USTACKTOP) && !(fault_va >= USER_HEAP_START && fault_va < USER_HEAP_MAX))
 		{
-			cprintf(" not stack nor heap... so kill\n");
+//			cprintf(" not stack nor heap... so kill\n");
 			unmap_frame(curenv->env_page_directory , fault_va);
 			sched_kill_env(curenv->env_id);
 			return 0;

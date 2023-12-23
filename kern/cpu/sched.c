@@ -256,7 +256,7 @@ void clock_interrupt_handler()
 		if(seconds != Seconds)
 		{
 			Seconds = seconds;
-			cprintf(">> one second passed.. Seconds = %d\n", Seconds);
+//			cprintf(">> one second passed.. Seconds = %d\n", Seconds);
 			//Load avg recalculated once per second
 			{
 				int num_of_ready_processes = 0;

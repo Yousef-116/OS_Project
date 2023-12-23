@@ -462,7 +462,7 @@ void* sys_sbrk(int increment) {
 		}
 
 		if(new_brk > curenv->dynamic_allocate_USER_heap_hLimit){
-			cprintf(">> new_brk > Uheap hLimit\n");
+//			cprintf(">> new_brk > Uheap hLimit\n");
 			return (void *)-1;
 		}
 		else
