@@ -299,8 +299,8 @@ void *alloc_block_FF(uint32 size)
     struct BlockMetaData *currBlock;
     uint32 emptySpace, remSpace;
   //  cprintf("size out : %d crrrr : %d \n",size ,crrrr++ );
-    if(0)
-//    if(called_sbrk == 1 && size >= size_called_sbrk)
+//    if(0)
+    if(called_sbrk == 1 && size >= size_called_sbrk)
 	{
 		struct BlockMetaData *list_ll = LIST_LAST(&free_block_list);
 //		emptySpace = list_ll->size - sizeOfMetaData();

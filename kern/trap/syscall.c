@@ -461,8 +461,10 @@ void* sys_sbrk(int increment) {
 			new_brk = ROUNDUP(diff, PAGE_SIZE) + curenv->dynamic_allocate_USER_heap_start;
 		}
 
-		if(new_brk > curenv->dynamic_allocate_USER_heap_hLimit)
+		if(new_brk > curenv->dynamic_allocate_USER_heap_hLimit){
+			cprintf(">> new_brk > Uheap hLimit\n");
 			return (void *)-1;
+		}
 		else
 			curenv->dynamic_allocate_USER_heap_break = new_brk;
 

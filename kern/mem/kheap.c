@@ -108,7 +108,7 @@ void* sbrk(int increment) {
 		}
 
 		if (new_brk > hLimit ){
-			panic("\nERROR_1 - brk + increment > hLimit\n");
+			panic(">> brk + increment > Kheap hLimit\n");
 		}
 		else {
 			brk = new_brk;
