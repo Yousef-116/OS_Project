@@ -481,13 +481,15 @@ void env_free(struct Env *e)
 		// loop over all entries in the page directory
 		for (int i = 0; i < NPDENTRIES; i++)
 		{
-		    if (pd_is_table_used((uint32*) e, e->env_page_directory[i]))
-		    {
-		    	pd_clear_page_dir_entry((uint32*)e, e->env_page_directory[i]); // set entry to NULL
-		 		pd_set_table_unused((uint32*) e, e->env_page_directory[i]); // mark as unused
-		    	cprintf("(void *)e->env_page_directory[i] = %x\n", (void *)e->env_page_directory[i]);
-		    	kfree((void *)e->env_page_directory[i]);
-		    }
+//		    if (pd_is_table_used((uint32*) e, e->env_page_directory[i]))
+//		    {
+//		    	pd_clear_page_dir_entry((uint32*)e, e->env_page_directory[i]); // set entry to NULL
+//		 		pd_set_table_unused((uint32*) e, e->env_page_directory[i]); // mark as unused
+//		    	cprintf("(void *)e->env_page_directory[i] = %x\n", (void *)e->env_page_directory[i]);
+//		    	kfree((void *)e->env_page_directory[i]);
+//		    }
+			kfree((void *)e->env_page_directory[i]);
+			pd_clear_page_dir_entry((uint32*)e, e->env_page_directory[i]); // set entry to NULL
 		}
 
 

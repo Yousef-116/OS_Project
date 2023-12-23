@@ -13,7 +13,7 @@
 //==================================================================================//
 //struct MemBlock_LIST free_block_list;
 uint8 called_sbrk = 0;
-uint32 size_called_sbrk;
+uint32 size_called_sbrk = 0;
 
 void update_call_sbrk(uint32 size)
 {
@@ -100,7 +100,8 @@ void merge_prev(struct BlockMetaData *currBlock)
 	if(is_phys_prev_free(currBlock))
 	{
 		LIST_PREV(currBlock)->size += currBlock->size;
-		update_call_sbrk(currBlock->size);
+//		update_call_sbrk(currBlock->size);
+		update_call_sbrk(LIST_PREV(currBlock)->size);
 		setVBlock0(currBlock);
 	}
 }
@@ -133,8 +134,10 @@ void split_block(struct BlockMetaData *currBlock , uint32 size)
 
 void* call_sbrk(void *old_brk, uint32 size)
 {
+	if(called_sbrk == 0 || size_called_sbrk > size)
+		size_called_sbrk = size;
+
 	called_sbrk = 1;
-	size_called_sbrk = size;
 
 	struct BlockMetaData *meta_data = (struct BlockMetaData *)(old_brk);
 	meta_data->size = sbrk(0) - old_brk;
@@ -296,40 +299,26 @@ void *alloc_block_FF(uint32 size)
     struct BlockMetaData *currBlock;
     uint32 emptySpace, remSpace;
   //  cprintf("size out : %d crrrr : %d \n",size ,crrrr++ );
-    if(called_sbrk == 1 )
-  //  if(0)
-    {
-    	// cprintf("size in : %d \n",size );
-    	if(size >= size_called_sbrk)
-    	{
-    		void* break_line = sbrk(0);
-    		void* vaaa = LIST_LAST(&free_block_list);
-    		if( vaaa >= break_line)
-    		{
-    		emptySpace = LIST_LAST(&free_block_list)->size - sizeOfMetaData();
-			if(emptySpace >= size && (LIST_LAST(&free_block_list)->is_free == 1))
+    if(0)
+//    if(called_sbrk == 1 && size >= size_called_sbrk)
+	{
+		struct BlockMetaData *list_ll = LIST_LAST(&free_block_list);
+//		emptySpace = list_ll->size - sizeOfMetaData();
+		if(list_ll != NULL && list_ll->size - sizeOfMetaData() >= size)
+		{
+			split_block(list_ll, size);
+			return (list_ll + 1);
+		}
+		else
+		{
+			void * old_brk = sbrk(size);
+			if(old_brk != (void*)-1)
 			{
-//    		  	call_sbrk=2;
-//				LIST_LAST(&free_block_list)->is_free = 0;
-				struct BlockMetaData *list_ll= LIST_LAST(&free_block_list);
-				split_block(LIST_LAST(&free_block_list),size);
-				if(LIST_LAST(&free_block_list)->size < size)
-					called_sbrk = 0;
-				return (list_ll + 1);
+				return call_sbrk(old_brk, size);
 			}
-			else
-			{
-				void * old_brk = sbrk(size);
-				if(old_brk != (void*)-1)
-				{
-					return call_sbrk(old_brk, size);
-				}
-				// cprintf("\n======> sbrk called and failed\n");
-				return NULL;
-			}
-    	 }
-    	}
-
+			// cprintf("\n======> sbrk called and failed\n");
+			return NULL;
+		}
     }
 
     LIST_FOREACH(currBlock, &free_block_list)
@@ -428,12 +417,13 @@ void free_block(void *va)
 	if(is_phys_next_free(next))
 	{
 		currBlock->size += next->size;
-		update_call_sbrk(currBlock->size);
+//		update_call_sbrk(currBlock->size);
 		LIST_INSERT_BEFORE(&free_block_list, next, currBlock);
 		setVBlock0(next);
 		merge_prev(currBlock);
 		return;
 	}
+	update_call_sbrk(currBlock->size);
 
 	free_insert(currBlock);
 	merge_prev(currBlock);

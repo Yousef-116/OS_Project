@@ -178,7 +178,7 @@ void sched_init_BSD(uint8 numOfLevels, uint8 quantum)
 
 	for(int i = 0 ; i < numOfLevels ; i++)
 	{
-	  init_queue(&env_ready_queues[i]);
+		init_queue(&env_ready_queues[i]);
 	}
 
 	//=========================================
@@ -222,10 +222,10 @@ struct Env* fos_scheduler_BSD()
 	{
 		if (!LIST_EMPTY(&env_ready_queues[i]))
 		{
-			kclock_set_quantum(quantums[0]);
 			struct Env* next_run = LIST_FIRST(&env_ready_queues[i]);
 			//cprintf(">> next process [%d] with priority = %d\n", next_run->env_id, i);
 			LIST_REMOVE(&env_ready_queues[i], next_run);
+			kclock_set_quantum(quantums[0]);
 			return next_run;
 		}
 	}
@@ -247,7 +247,7 @@ void clock_interrupt_handler()
 //		sched_print_all();
 //		uint32 seconds = ROUNDDOWN((timer_ticks()+1)*(*quantums), 1000)/1000;
 		uint32 seconds = ((timer_ticks()+1)*(*quantums))/1000;
-		cprintf("timer_ticks() = %lld\n", timer_ticks());
+//		cprintf("timer_ticks() = %lld\n", timer_ticks());
 //		cprintf("Seconds = %d,  quantum = %d,  timer_ticks() = %lld,  seconds = %d\n",Seconds, *quantums, timer_ticks(), seconds);
 
 		//𝒓𝒆𝒄𝒆𝒏𝒕_𝒄𝒑𝒖: updated on each timer tick for running process ==> incremented by 1
@@ -256,7 +256,7 @@ void clock_interrupt_handler()
 		if(seconds != Seconds)
 		{
 			Seconds = seconds;
-//			cprintf(">> one second passed curenv ID ( %d )\n" ,curenv->env_id);
+			cprintf(">> one second passed.. Seconds = %d\n", Seconds);
 			//Load avg recalculated once per second
 			{
 				int num_of_ready_processes = 0;
