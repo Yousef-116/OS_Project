@@ -295,8 +295,6 @@ void kfree(void* virtual_address) {
 	if(virtual_address == NULL)
 		return;
 
-	uint32 *ptr_page_table = NULL;
-	struct FrameInfo *ptr_frame_info = virtual_address;
 
 	if ((uint32) virtual_address >= start && (uint32) virtual_address < brk) // block area
 	{
@@ -450,6 +448,8 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 				// Here we should transfer the data.
 				struct BlockMetaData *currBlock = ((struct BlockMetaData *)virtual_address - 1);
 //				realloc_data(virtual_address, ((void *)currBlock + currBlock->size), new_va);
+				// |        |
+				// |                  |
 				realloc_data(virtual_address, (virtual_address + currBlock->size), new_va);
 				return new_va;
 			}
@@ -463,6 +463,7 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 	}
 	else if (kmanga[index] < num_of_req_pages)  //new size is greater
 	{
+		num_of_req_pages -= kmanga[index];
 		int nxt_index = index + kmanga[index], ctr = 0;
 		for(int i = nxt_index; i<kmanga_size; ++i)
 		{
@@ -472,12 +473,15 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 		}
 		if(ctr == num_of_req_pages) {
 			kmanga[index] = num_of_req_pages;
+			myAlloc_pages(index_to_Kva(nxt_index), num_of_req_pages);
 		}
 		else
 		{
 			void *new_va =  kmalloc_and_kfree(virtual_address, new_size);
 			if(new_va != NULL)
 			{
+				// |       |
+				// |                 |
 				// Here we should transfer the data.
 				realloc_data(virtual_address, index_to_Kva(nxt_index), new_va);
 				return new_va;
@@ -492,6 +496,8 @@ void *krealloc(void *virtual_address, uint32 new_size) {
 			void *new_va = alloc_block_FF(new_size);
 			if(new_va != NULL)
 			{
+				// |                  |
+				// |        |
 //				int nxt_index = index + kmanga[index];
 //				realloc_data(virtual_address, index_to_Kva(nxt_index), new_va);
 //				struct BlockMetaData *allocated_block = ((struct BlockMetaData *)new_va - 1);
