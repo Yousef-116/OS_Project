@@ -190,13 +190,17 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 		// Write your code here, remove the panic and write your code
 		//panic("page_fault_handler() LRU Replacement is not implemented yet...!!");
 
+		struct WorkingSetElement* WSElem = NULL;
+#if USE_INV_O1
 		//search in the second list O(1)
 		uint32 *ptr_page_table = NULL;
 		struct FrameInfo * fault_va_frame = get_frame_info(curenv->env_page_directory, fault_va, &ptr_page_table);
-		struct WorkingSetElement* WSElem = NULL;
 		if(fault_va_frame != 0){
 			WSElem= fault_va_frame->element;
 		}
+#else
+		WSElem = get_WSE_from_list(&curenv->SecondList, fault_va);
+#endif
 
 		if(WSElem != NULL || LIST_SIZE(&curenv->ActiveList) + LIST_SIZE(&curenv->SecondList) < (curenv->page_WS_max_size))
 		{

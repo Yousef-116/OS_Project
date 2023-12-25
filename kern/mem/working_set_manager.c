@@ -55,6 +55,19 @@ inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 
 #else
 
+struct WorkingSetElement *get_WSE_from_list(struct WS_List *ws_List, uint32 virtual_address)
+{
+	struct WorkingSetElement *ptr_WS_element = NULL;
+	LIST_FOREACH(ptr_WS_element, (ws_List))
+	{
+		if(ROUNDDOWN(ptr_WS_element->virtual_address,PAGE_SIZE) == ROUNDDOWN(virtual_address,PAGE_SIZE))
+		{
+			return ptr_WS_element;
+		}
+	}
+	return NULL;
+}
+
 inline void env_page_ws_invalidate(struct Env* e, uint32 virtual_address)
 {
 	if (isPageReplacmentAlgorithmLRU(PG_REP_LRU_LISTS_APPROX))
